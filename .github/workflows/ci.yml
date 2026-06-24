@@ -4,14 +4,17 @@ on:
   pull_request:
   push:
     branches:
-      - main
+      - master
+
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  checks:
+  quality:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -28,6 +31,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run typecheck
+        run: npm run typecheck
+
       - name: Run lint
         run: npm run lint
 
@@ -36,3 +42,66 @@ jobs:
 
       - name: Build application
         run: npm run build
+
+      - name: Upload production build
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swim-core-ui-dist
+          path: dist
+          if-no-files-found: error
+
+  deploy-development:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: development
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build development application
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_COGNITO_AUTHORITY: ${{ vars.VITE_COGNITO_AUTHORITY }}
+          VITE_COGNITO_CLIENT_ID: ${{ vars.VITE_COGNITO_CLIENT_ID }}
+          VITE_COGNITO_DOMAIN: ${{ vars.VITE_COGNITO_DOMAIN }}
+          VITE_COGNITO_LOGOUT_URI: ${{ vars.VITE_COGNITO_LOGOUT_URI }}
+          VITE_COGNITO_REDIRECT_URI: ${{ vars.VITE_COGNITO_REDIRECT_URI }}
+          VITE_COGNITO_SCOPE: ${{ vars.VITE_COGNITO_SCOPE }}
+        run: npm run build
+
+      - name: Upload development build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: swim-core-ui-dev-dist
+          path: dist
+          if-no-files-found: error
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Deploy to development S3 bucket
+        run: aws s3 sync dist "s3://${{ vars.AWS_S3_BUCKET_DEV }}" --delete
+
+      - name: Invalidate development CloudFront cache
+        if: ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID_DEV != '' }}
+        run: aws cloudfront create-invalidation --distribution-id "${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID_DEV }}" --paths "/*"
