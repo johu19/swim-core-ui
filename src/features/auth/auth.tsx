@@ -47,10 +47,11 @@ export function Auth() {
 
 function AuthenticatedAuth() {
   const auth = useAuth()
+  const idToken = auth.user?.id_token ?? null
 
   useEffect(() => {
-    apiClient.setIdToken(auth.user?.id_token ?? null)
-  }, [auth.user?.id_token])
+    apiClient.setIdToken(idToken)
+  }, [idToken])
 
   const signIn = () => {
     void auth.signinRedirect()
@@ -109,6 +110,15 @@ function AuthenticatedAuth() {
 
   if (!auth.isAuthenticated) {
     return <SignInScreen onSignIn={signIn} />
+  }
+
+  if (!idToken) {
+    return (
+      <StatusScreen
+        title="Finishing sign-in"
+        message="Securing your session before loading Swim Core."
+      />
+    )
   }
 
   return <AuthenticatedHome onSignOut={() => void signOut()} />
