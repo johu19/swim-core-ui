@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { GitCompareArrows, Rocket, X } from 'lucide-react'
+import { useMemo, useState, type ReactNode } from "react";
+import { GitCompareArrows, Rocket, X } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -12,49 +12,49 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from 'recharts'
+} from "recharts";
 
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { type Performance } from '@/features/performances/performances-api'
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { type Performance } from "@/features/performances/performances-api";
 
 type ChartsProps = {
-  distanceFilter: DistanceFilter
-  onDistanceFilterChange: (value: DistanceFilter) => void
-  onSelectedPerformanceChange: (value: string | null) => void
-  onStrokeFilterChange: (value: StrokeFilter) => void
-  onUnitFilterChange: (value: UnitFilter) => void
-  performances: Performance[]
-  selectedPerformanceId: string | null
-  strokeFilter: StrokeFilter
-  unitFilter: UnitFilter
-}
+  distanceFilter: DistanceFilter;
+  onDistanceFilterChange: (value: DistanceFilter) => void;
+  onSelectedPerformanceChange: (value: string | null) => void;
+  onStrokeFilterChange: (value: StrokeFilter) => void;
+  onUnitFilterChange: (value: UnitFilter) => void;
+  performances: Performance[];
+  selectedPerformanceId: string | null;
+  strokeFilter: StrokeFilter;
+  unitFilter: UnitFilter;
+};
 
-type StrokeFilter = 'back' | 'breast' | 'fly' | 'free' | 'medley'
-type DistanceFilter = '25' | '50' | '100' | '200' | '400' | '800' | '1500'
-type UnitFilter = 'meters' | 'yards'
+type StrokeFilter = "back" | "breast" | "fly" | "free" | "medley";
+type DistanceFilter = "25" | "50" | "100" | "200" | "400" | "800" | "1500";
+type UnitFilter = "meters" | "yards";
 
 type ChartDatum = {
-  date: string
-  eventLabel: string
-  fullDateLabel: string
-  poolLabel: string
-  performanceId: string
-  sourceTypeLabel: string
-  splits: number[]
-  timeMs: number
-}
+  date: string;
+  eventLabel: string;
+  fullDateLabel: string;
+  poolLabel: string;
+  performanceId: string;
+  sourceTypeLabel: string;
+  splits: number[];
+  timeMs: number;
+};
 
 type SplitChartDatum = {
-  label: string
-  splitSet: number[]
-  timeMs: number
-}
+  label: string;
+  splitSet: number[];
+  timeMs: number;
+};
 
 type ComparisonSplitChartDatum = {
-  label: string
-  primaryTimeMs: number
-  comparisonTimeMs: number
-}
+  label: string;
+  primaryTimeMs: number;
+  comparisonTimeMs: number;
+};
 
 export function Charts({
   distanceFilter,
@@ -67,39 +67,47 @@ export function Charts({
   strokeFilter,
   unitFilter,
 }: ChartsProps) {
-  const [comparisonPerformanceId, setComparisonPerformanceId] = useState<string | null>(null)
-  const [isCompareSelectionActive, setIsCompareSelectionActive] = useState(false)
-  const availableDistanceFilters = getAvailableDistanceFilters(strokeFilter)
+  const [comparisonPerformanceId, setComparisonPerformanceId] = useState<
+    string | null
+  >(null);
+  const [isCompareSelectionActive, setIsCompareSelectionActive] =
+    useState(false);
+  const availableDistanceFilters = getAvailableDistanceFilters(strokeFilter);
 
   const filteredPerformances = useMemo(() => {
     return performances.filter((performance) => {
       if (getStrokeFilterValue(performance.stroke) !== strokeFilter) {
-        return false
+        return false;
       }
 
-      if (String(asNumber(performance.distance) ?? '') !== distanceFilter) {
-        return false
+      if (String(asNumber(performance.distance) ?? "") !== distanceFilter) {
+        return false;
       }
 
       if (normalizeUnit(performance.poolLengthUnit) !== unitFilter) {
-        return false
+        return false;
       }
 
-      return asNumber(performance.timeMs) !== null && getDateValue(performance.performedAt) !== null
-    })
-  }, [distanceFilter, performances, strokeFilter, unitFilter])
+      return (
+        asNumber(performance.timeMs) !== null &&
+        getDateValue(performance.performedAt) !== null
+      );
+    });
+  }, [distanceFilter, performances, strokeFilter, unitFilter]);
 
   const chartData = useMemo<ChartDatum[]>(() => {
     return filteredPerformances
       .map((performance, index) => {
-        const date = getDateValue(performance.performedAt)
-        const timeMs = asNumber(performance.timeMs)
+        const date = getDateValue(performance.performedAt);
+        const timeMs = asNumber(performance.timeMs);
 
         if (!date || timeMs === null) {
-          return null
+          return null;
         }
 
-        const performanceId = String(performance.performanceId ?? performance.id ?? index)
+        const performanceId = String(
+          performance.performanceId ?? performance.id ?? index,
+        );
 
         return {
           date,
@@ -110,169 +118,153 @@ export function Charts({
             performance.poolLength,
           ),
           fullDateLabel: formatChartDate(date),
-          poolLabel: formatPoolLength(performance.poolLength, performance.poolLengthUnit),
+          poolLabel: formatPoolLength(
+            performance.poolLength,
+            performance.poolLengthUnit,
+          ),
           performanceId,
           sourceTypeLabel: formatSourceType(performance.sourceType),
           splits: normalizeSplits(performance.splits),
           timeMs,
-        }
+        };
       })
       .filter((value): value is ChartDatum => value !== null)
       .sort((left, right) => {
         if (left.date === right.date) {
-          return left.performanceId.localeCompare(right.performanceId)
+          return left.performanceId.localeCompare(right.performanceId);
         }
 
-        return left.date.localeCompare(right.date)
-      })
-  }, [filteredPerformances])
+        return left.date.localeCompare(right.date);
+      });
+  }, [filteredPerformances]);
 
   const yAxisDomain = useMemo<[number, number] | undefined>(() => {
     if (!chartData.length) {
-      return undefined
+      return undefined;
     }
 
-    const times = chartData.map((datum) => datum.timeMs)
-    const minTime = Math.min(...times)
-    const maxTime = Math.max(...times)
+    const times = chartData.map((datum) => datum.timeMs);
+    const minTime = Math.min(...times);
+    const maxTime = Math.max(...times);
 
-    return [Math.max(0, minTime - 5000), maxTime + 5000]
-  }, [chartData])
+    return [Math.max(0, minTime - 5000), maxTime + 5000];
+  }, [chartData]);
 
   const bestTime = useMemo(() => {
     if (!chartData.length) {
-      return null
+      return null;
     }
 
-    return Math.min(...chartData.map((datum) => datum.timeMs))
-  }, [chartData])
+    return Math.min(...chartData.map((datum) => datum.timeMs));
+  }, [chartData]);
 
   const bestDatum = useMemo(() => {
     if (bestTime === null) {
-      return null
+      return null;
     }
 
-    return chartData.find((datum) => datum.timeMs === bestTime) ?? null
-  }, [bestTime, chartData])
+    return chartData.find((datum) => datum.timeMs === bestTime) ?? null;
+  }, [bestTime, chartData]);
 
-  const selectedDatum = useMemo(
-    () => chartData.find((datum) => datum.performanceId === selectedPerformanceId) ?? null,
-    [chartData, selectedPerformanceId],
+  const effectiveSelectedPerformanceId = chartData.some(
+    (datum) => datum.performanceId === selectedPerformanceId,
   )
+    ? selectedPerformanceId
+    : (bestDatum?.performanceId ?? null);
 
-  const comparisonDatum = useMemo(
-    () => chartData.find((datum) => datum.performanceId === comparisonPerformanceId) ?? null,
-    [chartData, comparisonPerformanceId],
-  )
+  const selectedDatum =
+    chartData.find(
+      (datum) => datum.performanceId === effectiveSelectedPerformanceId,
+    ) ?? null;
 
   const selectedSplitData = useMemo<SplitChartDatum[]>(() => {
     if (!selectedDatum?.splits.length) {
-      return []
+      return [];
     }
 
     return selectedDatum.splits.map((split, index) => ({
       label: getSplitLabel(strokeFilter, index, selectedDatum.splits.length),
       splitSet: selectedDatum.splits,
       timeMs: split,
-    }))
-  }, [selectedDatum, strokeFilter])
+    }));
+  }, [selectedDatum, strokeFilter]);
+
+  const compareEligiblePerformanceIds = useMemo(() => {
+    if (!selectedDatum) {
+      return new Set<string>();
+    }
+
+    return new Set(
+      chartData
+        .filter((datum) =>
+          hasMatchingSplitStructure(selectedDatum.splits, datum.splits),
+        )
+        .map((datum) => datum.performanceId),
+    );
+  }, [chartData, selectedDatum]);
+
+  const effectiveComparisonPerformanceId =
+    comparisonPerformanceId &&
+    compareEligiblePerformanceIds.has(comparisonPerformanceId)
+      ? comparisonPerformanceId
+      : null;
+
+  const comparisonDatum =
+    chartData.find(
+      (datum) => datum.performanceId === effectiveComparisonPerformanceId,
+    ) ?? null;
 
   const comparisonSplitData = useMemo<ComparisonSplitChartDatum[]>(() => {
     if (!selectedDatum || !comparisonDatum) {
-      return []
+      return [];
     }
 
     const comparableSplitCount = getComparableSplitCount(
       selectedDatum.splits,
       comparisonDatum.splits,
-    )
+    );
 
     if (comparableSplitCount === null) {
-      return []
+      return [];
     }
 
     const normalizedPrimarySplits = normalizeSplitsForComparison(
       selectedDatum.splits,
       comparableSplitCount,
-    )
+    );
     const normalizedComparisonSplits = normalizeSplitsForComparison(
       comparisonDatum.splits,
       comparableSplitCount,
-    )
+    );
 
     return normalizedPrimarySplits.map((split, index) => ({
       label: getSplitLabel(strokeFilter, index, comparableSplitCount),
       primaryTimeMs: split,
       comparisonTimeMs: normalizedComparisonSplits[index] ?? 0,
-    }))
-  }, [comparisonDatum, selectedDatum, strokeFilter])
+    }));
+  }, [comparisonDatum, selectedDatum, strokeFilter]);
 
-  const showComparisonSplitLabels = comparisonSplitData.length <= 2
-
-  const compareEligiblePerformanceIds = useMemo(() => {
-    if (!selectedDatum) {
-      return new Set<string>()
-    }
-
-    return new Set(
-      chartData
-        .filter((datum) => hasMatchingSplitStructure(selectedDatum.splits, datum.splits))
-        .map((datum) => datum.performanceId),
-    )
-  }, [chartData, selectedDatum])
-
-  useEffect(() => {
-    if (!chartData.length) {
-      onSelectedPerformanceChange(null)
-      setComparisonPerformanceId(null)
-      setIsCompareSelectionActive(false)
-      return
-    }
-
-    if (!chartData.some((datum) => datum.performanceId === selectedPerformanceId)) {
-      onSelectedPerformanceChange(bestDatum?.performanceId ?? null)
-    }
-
-    if (!chartData.some((datum) => datum.performanceId === comparisonPerformanceId)) {
-      setComparisonPerformanceId(null)
-      setIsCompareSelectionActive(false)
-    }
-
-    if (
-      comparisonPerformanceId &&
-      !compareEligiblePerformanceIds.has(comparisonPerformanceId)
-    ) {
-      setComparisonPerformanceId(null)
-      setIsCompareSelectionActive(false)
-    }
-  }, [
-    bestDatum,
-    chartData,
-    comparisonPerformanceId,
-    compareEligiblePerformanceIds,
-    onSelectedPerformanceChange,
-    selectedPerformanceId,
-  ])
+  const showComparisonSplitLabels = comparisonSplitData.length <= 2;
 
   const handleChartPointSelect = (performanceId: string) => {
     if (isCompareSelectionActive) {
       if (
-        performanceId !== selectedPerformanceId &&
+        performanceId !== effectiveSelectedPerformanceId &&
         compareEligiblePerformanceIds.has(performanceId)
       ) {
-        setComparisonPerformanceId(performanceId)
+        setComparisonPerformanceId(performanceId);
       }
 
-      setIsCompareSelectionActive(false)
-      return
+      setIsCompareSelectionActive(false);
+      return;
     }
 
-    onSelectedPerformanceChange(performanceId)
+    onSelectedPerformanceChange(performanceId);
 
-    if (performanceId === comparisonPerformanceId) {
-      setComparisonPerformanceId(null)
+    if (performanceId === effectiveComparisonPerformanceId) {
+      setComparisonPerformanceId(null);
     }
-  }
+  };
 
   return (
     <Card className="overflow-hidden border-primary/10 bg-white/90 shadow-[0_24px_60px_-32px_rgba(37,99,235,0.22)]">
@@ -281,7 +273,9 @@ export function Charts({
           <CompactFilter
             ariaLabel="Filter chart by distance"
             label={`${distanceFilter}`}
-            onChange={(value) => onDistanceFilterChange(value as DistanceFilter)}
+            onChange={(value) =>
+              onDistanceFilterChange(value as DistanceFilter)
+            }
             value={distanceFilter}
           >
             {availableDistanceFilters.map((distance) => (
@@ -301,26 +295,30 @@ export function Charts({
           </CompactFilter>
         </div>
         <div className="flex w-full">
-          {(['free', 'fly', 'back', 'breast', 'medley'] as StrokeFilter[]).map((stroke, index) => {
-            const isActive = strokeFilter === stroke
+          {(["free", "fly", "back", "breast", "medley"] as StrokeFilter[]).map(
+            (stroke, index) => {
+              const isActive = strokeFilter === stroke;
 
-            return (
-              <button
-                key={stroke}
-                type="button"
-                className={[
-                  'flex min-w-0 flex-1 items-center justify-center px-2 py-2 text-center transition-colors sm:px-3 sm:py-3',
-                  index > 0 ? 'border-l border-primary/10' : '',
-                  isActive ? 'bg-primary/8' : 'bg-transparent hover:bg-primary/5',
-                ].join(' ')}
-                onClick={() => onStrokeFilterChange(stroke)}
-              >
-                <span className="text-xs font-semibold text-foreground sm:text-sm md:text-base">
-                  {getStrokeFilterLabel(stroke)}
-                </span>
-              </button>
-            )
-          })}
+              return (
+                <button
+                  key={stroke}
+                  type="button"
+                  className={[
+                    "flex min-w-0 flex-1 items-center justify-center px-2 py-2 text-center transition-colors sm:px-3 sm:py-3",
+                    index > 0 ? "border-l border-primary/10" : "",
+                    isActive
+                      ? "bg-primary/8"
+                      : "bg-transparent hover:bg-primary/5",
+                  ].join(" ")}
+                  onClick={() => onStrokeFilterChange(stroke)}
+                >
+                  <span className="text-xs font-semibold text-foreground sm:text-sm md:text-base">
+                    {getStrokeFilterLabel(stroke)}
+                  </span>
+                </button>
+              );
+            },
+          )}
         </div>
       </CardHeader>
 
@@ -329,64 +327,74 @@ export function Charts({
           <div className="relative">
             <button
               type="button"
-              aria-label={comparisonPerformanceId ? 'Clear comparison' : 'Compare performance'}
+              aria-label={
+                effectiveComparisonPerformanceId
+                  ? "Clear comparison"
+                  : "Compare performance"
+              }
               className={[
-                'absolute right-3 top-3 z-10 flex size-10 items-center justify-center rounded-full border shadow-sm backdrop-blur transition-colors',
-                comparisonPerformanceId
-                  ? 'border-slate-300 bg-white/95 text-slate-600 hover:bg-slate-50'
+                "absolute right-3 top-3 z-10 flex size-10 items-center justify-center rounded-full border shadow-sm backdrop-blur transition-colors",
+                effectiveComparisonPerformanceId
+                  ? "border-slate-300 bg-white/95 text-slate-600 hover:bg-slate-50"
                   : isCompareSelectionActive
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-primary/15 bg-white/95 text-primary hover:bg-primary/5',
-              ].join(' ')}
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-primary/15 bg-white/95 text-primary hover:bg-primary/5",
+              ].join(" ")}
               onClick={() => {
-                if (comparisonPerformanceId) {
-                  setComparisonPerformanceId(null)
-                  setIsCompareSelectionActive(false)
-                  return
+                if (effectiveComparisonPerformanceId) {
+                  setComparisonPerformanceId(null);
+                  setIsCompareSelectionActive(false);
+                  return;
                 }
 
-                setIsCompareSelectionActive((current) => !current)
+                setIsCompareSelectionActive((current) => !current);
               }}
             >
-              {comparisonPerformanceId ? (
+              {effectiveComparisonPerformanceId ? (
                 <X className="size-4" />
               ) : (
                 <GitCompareArrows className="size-4" />
               )}
             </button>
             <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={chartData} margin={{ top: 0, right: 20, left: 20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(37,99,235,0.12)" />
-                <XAxis
-                  dataKey="date"
-                  hide
-                  padding={{ left: 18, right: 18 }}
+              <LineChart
+                data={chartData}
+                margin={{ top: 0, right: 20, left: 20, bottom: 0 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="rgba(37,99,235,0.12)"
                 />
-                <YAxis
-                  domain={yAxisDomain}
-                  hide
-                  width={12}
-                />
+                <XAxis dataKey="date" hide padding={{ left: 18, right: 18 }} />
+                <YAxis domain={yAxisDomain} hide width={12} />
                 <Line
                   dataKey="timeMs"
                   activeDot={false}
                   dot={(props) => {
-                    const { cx, cy, payload } = props
+                    const { cx, cy, payload } = props;
 
-                    if (typeof cx !== 'number' || typeof cy !== 'number' || !payload) {
-                      return <g />
+                    if (
+                      typeof cx !== "number" ||
+                      typeof cy !== "number" ||
+                      !payload
+                    ) {
+                      return <g />;
                     }
 
-                    const isSelected = payload.performanceId === selectedPerformanceId
-                    const isComparison = payload.performanceId === comparisonPerformanceId
+                    const isSelected =
+                      payload.performanceId === effectiveSelectedPerformanceId;
+                    const isComparison =
+                      payload.performanceId ===
+                      effectiveComparisonPerformanceId;
                     const isCompareEligible = compareEligiblePerformanceIds.has(
                       payload.performanceId,
-                    )
+                    );
                     const isDimmedForCompare =
                       isCompareSelectionActive &&
                       isCompareEligible &&
                       !isSelected &&
-                      !isComparison
+                      !isComparison;
 
                     return (
                       <circle
@@ -395,31 +403,35 @@ export function Charts({
                         className="transition-all duration-200 ease-out"
                         fill={
                           isSelected
-                            ? 'rgba(250,204,21,0.95)'
+                            ? "rgba(250,204,21,0.95)"
                             : isDimmedForCompare
-                              ? 'rgba(148,163,184,0.9)'
-                              : 'rgba(37,99,235,0.9)'
+                              ? "rgba(148,163,184,0.9)"
+                              : "rgba(37,99,235,0.9)"
                         }
-                        onClick={() => handleChartPointSelect(payload.performanceId)}
+                        onClick={() =>
+                          handleChartPointSelect(payload.performanceId)
+                        }
                         r={isSelected ? 6.5 : isComparison ? 5 : 3.5}
                         stroke={
                           isSelected
-                            ? 'rgba(202,138,4,1)'
+                            ? "rgba(202,138,4,1)"
                             : isComparison
-                              ? 'rgba(29,78,216,1)'
+                              ? "rgba(29,78,216,1)"
                               : isDimmedForCompare
-                                ? 'rgba(100,116,139,0.95)'
-                                : 'rgba(255,255,255,0.95)'
+                                ? "rgba(100,116,139,0.95)"
+                                : "rgba(255,255,255,0.95)"
                         }
                         strokeWidth={isSelected ? 3 : isComparison ? 2.5 : 1.5}
                         style={{
                           cursor:
-                            isCompareSelectionActive && !isSelected && !isCompareEligible
-                              ? 'not-allowed'
-                              : 'pointer',
+                            isCompareSelectionActive &&
+                            !isSelected &&
+                            !isCompareEligible
+                              ? "not-allowed"
+                              : "pointer",
                         }}
                       />
-                    )
+                    );
                   }}
                   fill="none"
                   strokeLinecap="round"
@@ -441,7 +453,7 @@ export function Charts({
           <div className="mt-0.5 flex items-center gap-2 px-1 text-sm font-medium text-foreground">
             <Rocket className="size-4 text-primary" />
             <span>
-              {'Your best: '}
+              {"Your best: "}
               <span className="text-emerald-600">{formatTime(bestTime)}</span>
             </span>
           </div>
@@ -450,14 +462,21 @@ export function Charts({
         {selectedDatum && comparisonDatum ? (
           <div className="mt-3 rounded-xl border border-primary/10 bg-primary/5 px-3 py-3 text-sm text-foreground shadow-[0_16px_40px_-28px_rgba(15,23,42,0.2)]">
             <div className="mb-3 text-center text-sm font-medium">
-              <span className="text-amber-500">{formatTime(selectedDatum.timeMs)}</span>
+              <span className="text-amber-500">
+                {formatTime(selectedDatum.timeMs)}
+              </span>
               <span className="px-2 text-muted-foreground">vs</span>
-              <span className="text-sky-500">{formatTime(comparisonDatum.timeMs)}</span>
+              <span className="text-sky-500">
+                {formatTime(comparisonDatum.timeMs)}
+              </span>
             </div>
             {comparisonSplitData.length ? (
               <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={comparisonSplitData} margin={{ top: 20, right: 8, left: 8, bottom: 0 }}>
+                  <BarChart
+                    data={comparisonSplitData}
+                    margin={{ top: 20, right: 8, left: 8, bottom: 0 }}
+                  >
                     <CartesianGrid
                       stroke="rgba(37,99,235,0.1)"
                       strokeDasharray="3 3"
@@ -466,33 +485,49 @@ export function Charts({
                     <XAxis
                       axisLine={false}
                       dataKey="label"
-                      tick={{ fill: 'rgba(100,116,139,0.9)', fontSize: 11 }}
+                      tick={{ fill: "rgba(100,116,139,0.9)", fontSize: 11 }}
                       tickLine={false}
                     />
                     <YAxis hide />
                     {!showComparisonSplitLabels ? (
                       <Tooltip
-                        cursor={{ fill: 'rgba(37,99,235,0.06)' }}
+                        cursor={{ fill: "rgba(37,99,235,0.06)" }}
                         content={<ComparisonSplitsTooltip />}
                       />
                     ) : null}
-                    <Bar dataKey="primaryTimeMs" fill="rgba(251,191,36,0.72)" radius={4}>
+                    <Bar
+                      dataKey="primaryTimeMs"
+                      fill="rgba(251,191,36,0.72)"
+                      radius={4}
+                    >
                       {showComparisonSplitLabels ? (
                         <LabelList
                           dataKey="primaryTimeMs"
                           position="top"
                           formatter={(value: number) => formatTime(value)}
-                          style={{ fill: 'rgba(100,116,139,0.95)', fontSize: 11, fontWeight: 600 }}
+                          style={{
+                            fill: "rgba(100,116,139,0.95)",
+                            fontSize: 11,
+                            fontWeight: 600,
+                          }}
                         />
                       ) : null}
                     </Bar>
-                    <Bar dataKey="comparisonTimeMs" fill="rgba(96,165,250,0.72)" radius={4}>
+                    <Bar
+                      dataKey="comparisonTimeMs"
+                      fill="rgba(96,165,250,0.72)"
+                      radius={4}
+                    >
                       {showComparisonSplitLabels ? (
                         <LabelList
                           dataKey="comparisonTimeMs"
                           position="top"
                           formatter={(value: number) => formatTime(value)}
-                          style={{ fill: 'rgba(100,116,139,0.95)', fontSize: 11, fontWeight: 600 }}
+                          style={{
+                            fill: "rgba(100,116,139,0.95)",
+                            fontSize: 11,
+                            fontWeight: 600,
+                          }}
                         />
                       ) : null}
                     </Bar>
@@ -513,74 +548,81 @@ export function Charts({
               )
             ) : null}
             <div>
-              <span className="font-semibold">{formatTime(selectedDatum.timeMs)}</span>
+              <span className="font-semibold">
+                {formatTime(selectedDatum.timeMs)}
+              </span>
               <span className="text-muted-foreground">
                 {` - ${selectedDatum.poolLabel} - ${selectedDatum.sourceTypeLabel}`}
               </span>
             </div>
-            <div className="text-muted-foreground">{selectedDatum.fullDateLabel}</div>
+            <div className="text-muted-foreground">
+              {selectedDatum.fullDateLabel}
+            </div>
             {selectedDatum.splits.length > 1 ? (
               <div className="mt-3 h-40">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={selectedSplitData} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
-                      <CartesianGrid
-                        stroke="rgba(37,99,235,0.1)"
-                        strokeDasharray="3 3"
-                        vertical={false}
-                      />
-                      <XAxis
-                        axisLine={false}
-                        dataKey="label"
-                        tick={{ fill: 'rgba(100,116,139,0.9)', fontSize: 11 }}
-                        tickLine={false}
-                      />
-                      <YAxis hide />
-                      <Bar dataKey="timeMs" radius={[6, 6, 0, 0]}>
-                        {selectedSplitData.map((split) => (
-                          <Cell
-                            key={`${selectedDatum.performanceId}-split-bar-${split.label}`}
-                            fill={getSplitBarFill(split.timeMs, split.splitSet)}
-                          />
-                        ))}
-                        <LabelList
-                          dataKey="timeMs"
-                          position="top"
-                          content={(props) => {
-                            const { x, y, width, value } = props
-
-                            if (
-                              typeof x !== 'number' ||
-                              typeof y !== 'number' ||
-                              typeof width !== 'number' ||
-                              typeof value !== 'number'
-                            ) {
-                              return <g />
-                            }
-
-                            return (
-                              <text
-                                x={x + width / 2}
-                                y={y - 8}
-                                fill="rgba(100,116,139,0.95)"
-                                fontSize="11"
-                                fontWeight="600"
-                                textAnchor="middle"
-                              >
-                                {formatTime(value)}
-                              </text>
-                            )
-                          }}
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={selectedSplitData}
+                    margin={{ top: 20, right: 0, left: 0, bottom: 0 }}
+                  >
+                    <CartesianGrid
+                      stroke="rgba(37,99,235,0.1)"
+                      strokeDasharray="3 3"
+                      vertical={false}
+                    />
+                    <XAxis
+                      axisLine={false}
+                      dataKey="label"
+                      tick={{ fill: "rgba(100,116,139,0.9)", fontSize: 11 }}
+                      tickLine={false}
+                    />
+                    <YAxis hide />
+                    <Bar dataKey="timeMs" radius={[6, 6, 0, 0]}>
+                      {selectedSplitData.map((split) => (
+                        <Cell
+                          key={`${selectedDatum.performanceId}-split-bar-${split.label}`}
+                          fill={getSplitBarFill(split.timeMs, split.splitSet)}
                         />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                      ))}
+                      <LabelList
+                        dataKey="timeMs"
+                        position="top"
+                        content={(props) => {
+                          const { x, y, width, value } = props;
+
+                          if (
+                            typeof x !== "number" ||
+                            typeof y !== "number" ||
+                            typeof width !== "number" ||
+                            typeof value !== "number"
+                          ) {
+                            return <g />;
+                          }
+
+                          return (
+                            <text
+                              x={x + width / 2}
+                              y={y - 8}
+                              fill="rgba(100,116,139,0.95)"
+                              fontSize="11"
+                              fontWeight="600"
+                              textAnchor="middle"
+                            >
+                              {formatTime(value)}
+                            </text>
+                          );
+                        }}
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             ) : null}
           </div>
         ) : null}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 function CompactFilter({
@@ -590,11 +632,11 @@ function CompactFilter({
   onChange,
   value,
 }: {
-  ariaLabel: string
-  children: ReactNode
-  label: string
-  onChange: (value: string) => void
-  value: string
+  ariaLabel: string;
+  children: ReactNode;
+  label: string;
+  onChange: (value: string) => void;
+  value: string;
 }) {
   return (
     <div className="flex w-fit items-center rounded-full border border-primary/10 bg-white px-3 py-2">
@@ -608,7 +650,7 @@ function CompactFilter({
         {children}
       </select>
     </div>
-  )
+  );
 }
 
 function ComparisonSplitsTooltip({
@@ -616,68 +658,74 @@ function ComparisonSplitsTooltip({
   payload,
   label,
 }: {
-  active?: boolean
-  label?: string | number
-  payload?: Array<{ color?: string; dataKey?: string; value?: number }>
+  active?: boolean;
+  label?: string | number;
+  payload?: Array<{ color?: string; dataKey?: string; value?: number }>;
 }) {
   if (!active || !payload?.length) {
-    return null
+    return null;
   }
 
-  const primarySplit = payload.find((entry) => entry.dataKey === 'primaryTimeMs')?.value
-  const comparisonSplit = payload.find((entry) => entry.dataKey === 'comparisonTimeMs')?.value
+  const primarySplit = payload.find(
+    (entry) => entry.dataKey === "primaryTimeMs",
+  )?.value;
+  const comparisonSplit = payload.find(
+    (entry) => entry.dataKey === "comparisonTimeMs",
+  )?.value;
 
   return (
     <div className="rounded-xl border border-primary/10 bg-white px-3 py-2 text-sm shadow-[0_16px_40px_-28px_rgba(15,23,42,0.35)]">
       <div className="font-medium text-foreground">{`Split ${label}`}</div>
-      {typeof primarySplit === 'number' ? (
+      {typeof primarySplit === "number" ? (
         <div className="text-amber-500">{formatTime(primarySplit)}</div>
       ) : null}
-      {typeof comparisonSplit === 'number' ? (
+      {typeof comparisonSplit === "number" ? (
         <div className="text-sky-500">{formatTime(comparisonSplit)}</div>
       ) : null}
     </div>
-  )
+  );
 }
 
 function getDateValue(value: string | null | undefined) {
   if (!value) {
-    return null
+    return null;
   }
 
-  const date = new Date(value)
+  const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    return null
+    return null;
   }
 
-  return date.toISOString().slice(0, 10)
+  return date.toISOString().slice(0, 10);
 }
 
 function formatChartDate(value: string) {
-  const date = new Date(`${value}T00:00:00.000Z`)
+  const date = new Date(`${value}T00:00:00.000Z`);
 
-  return date.toLocaleDateString('en-US', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).replace(',', ' -')
+  return date
+    .toLocaleDateString("en-US", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      timeZone: "UTC",
+    })
+    .replace(",", " -");
 }
 
 function formatTime(value: number) {
-  const totalSeconds = Math.floor(value / 1000)
-  const minutes = Math.floor(totalSeconds / 60)
-  const seconds = totalSeconds % 60
-  const hundredths = Math.floor((value % 1000) / 10)
+  const totalSeconds = Math.floor(value / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const hundredths = Math.floor((value % 1000) / 10);
 
-  return `${minutes}:${String(seconds).padStart(2, '0')}.${String(hundredths).padStart(2, '0')}`
+  return `${minutes}:${String(seconds).padStart(2, "0")}.${String(hundredths).padStart(2, "0")}`;
 }
 
 function formatBestTimeDifference(selectedTime: number, bestTime: number) {
-  const difference = selectedTime - bestTime
+  const difference = selectedTime - bestTime;
 
-  return `${difference >= 0 ? '+' : '-'}${formatTime(Math.abs(difference))} vs best`
+  return `${difference >= 0 ? "+" : "-"}${formatTime(Math.abs(difference))} vs best`;
 }
 
 function formatChartEventLabel(
@@ -686,287 +734,310 @@ function formatChartEventLabel(
   stroke: unknown,
   poolLength: number | string | null | undefined,
 ) {
-  const distanceLabel = formatDistance(distance, poolLengthUnit)
-  const strokeLabel = formatStroke(stroke)
-  const poolLabel = formatPoolLength(poolLength, poolLengthUnit)
+  const distanceLabel = formatDistance(distance, poolLengthUnit);
+  const strokeLabel = formatStroke(stroke);
+  const poolLabel = formatPoolLength(poolLength, poolLengthUnit);
 
-  return `${distanceLabel} ${strokeLabel} ${poolLabel}`.trim()
+  return `${distanceLabel} ${strokeLabel} ${poolLabel}`.trim();
 }
 
 function formatDistance(
   distance: number | string | null | undefined,
   poolLengthUnit: string | null | undefined,
 ) {
-  const distanceValue = formatText(distance)
-  const unit = normalizeUnit(poolLengthUnit)
+  const distanceValue = formatText(distance);
+  const unit = normalizeUnit(poolLengthUnit);
 
-  if (distanceValue === '-') {
-    return '-'
+  if (distanceValue === "-") {
+    return "-";
   }
 
-  if (unit === 'meters') {
-    return `${distanceValue}M`
+  if (unit === "meters") {
+    return `${distanceValue}M`;
   }
 
-  if (unit === 'yards') {
-    return `${distanceValue}Y`
+  if (unit === "yards") {
+    return `${distanceValue}Y`;
   }
 
-  return distanceValue
+  return distanceValue;
 }
 
 function formatStroke(value: unknown) {
-  const stroke = formatText(value)
+  const stroke = formatText(value);
 
-  if (stroke === '-') {
-    return stroke
+  if (stroke === "-") {
+    return stroke;
   }
 
-  const normalized = stroke.trim().toLowerCase()
+  const normalized = stroke.trim().toLowerCase();
 
-  if (normalized === 'freestyle') {
-    return 'Free'
+  if (normalized === "freestyle") {
+    return "Free";
   }
 
-  if (normalized === 'backstroke') {
-    return 'Back'
+  if (normalized === "backstroke") {
+    return "Back";
   }
 
-  if (normalized === 'breastroke' || normalized === 'breaststroke') {
-    return 'Breast'
+  if (normalized === "breastroke" || normalized === "breaststroke") {
+    return "Breast";
   }
 
-  if (normalized === 'butterfly') {
-    return 'Fly'
+  if (normalized === "butterfly") {
+    return "Fly";
   }
 
-  if (normalized === 'medley') {
-    return 'Medley'
+  if (normalized === "medley") {
+    return "Medley";
   }
 
-  return stroke
+  return stroke;
 }
 
 function formatText(value: unknown) {
-  if (typeof value === 'string') {
-    return value || '-'
+  if (typeof value === "string") {
+    return value || "-";
   }
 
-  if (typeof value === 'number') {
-    return String(value)
+  if (typeof value === "number") {
+    return String(value);
   }
 
-  return '-'
+  return "-";
 }
 
 function asNumber(value: number | string | null | undefined) {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
   }
 
-  if (typeof value === 'string') {
-    const parsed = Number(value)
+  if (typeof value === "string") {
+    const parsed = Number(value);
 
     if (Number.isFinite(parsed)) {
-      return parsed
+      return parsed;
     }
   }
 
-  return null
+  return null;
 }
 
 function formatPoolLength(
   poolLength: number | string | null | undefined,
   poolLengthUnit: string | null | undefined,
 ) {
-  const length = asNumber(poolLength)
-  const unit = normalizeUnit(poolLengthUnit)
+  const length = asNumber(poolLength);
+  const unit = normalizeUnit(poolLengthUnit);
 
   if (length === null) {
-    return '-'
+    return "-";
   }
 
-  if (length === 50 && unit === 'meters') {
-    return 'LCM'
+  if (length === 50 && unit === "meters") {
+    return "LCM";
   }
 
-  if (length === 25 && unit === 'meters') {
-    return 'SCM'
+  if (length === 25 && unit === "meters") {
+    return "SCM";
   }
 
-  if (length === 50 && unit === 'yards') {
-    return 'LCY'
+  if (length === 50 && unit === "yards") {
+    return "LCY";
   }
 
-  if (length === 25 && unit === 'yards') {
-    return 'SCY'
+  if (length === 25 && unit === "yards") {
+    return "SCY";
   }
 
-  return unit ? `${length} ${unit}` : String(length)
+  return unit ? `${length} ${unit}` : String(length);
 }
 
 function normalizeUnit(value: string | null | undefined) {
   if (!value) {
-    return ''
+    return "";
   }
 
-  const normalized = value.trim().toLowerCase()
+  const normalized = value.trim().toLowerCase();
 
-  if (normalized === 'meter' || normalized === 'meters' || normalized === 'm') {
-    return 'meters'
+  if (normalized === "meter" || normalized === "meters" || normalized === "m") {
+    return "meters";
   }
 
-  if (normalized === 'yard' || normalized === 'yards' || normalized === 'y') {
-    return 'yards'
+  if (normalized === "yard" || normalized === "yards" || normalized === "y") {
+    return "yards";
   }
 
-  return normalized
+  return normalized;
 }
 
 function getStrokeFilterValue(value: unknown): StrokeFilter {
-  const normalized = String(value).trim().toLowerCase()
+  const normalized = String(value).trim().toLowerCase();
 
-  if (normalized === 'freestyle' || normalized === 'free') {
-    return 'free'
+  if (normalized === "freestyle" || normalized === "free") {
+    return "free";
   }
 
-  if (normalized === 'butterfly' || normalized === 'fly') {
-    return 'fly'
+  if (normalized === "butterfly" || normalized === "fly") {
+    return "fly";
   }
 
-  if (normalized === 'backstroke' || normalized === 'back') {
-    return 'back'
+  if (normalized === "backstroke" || normalized === "back") {
+    return "back";
   }
 
-  if (normalized === 'medley') {
-    return 'medley'
+  if (normalized === "medley") {
+    return "medley";
   }
 
   if (
-    normalized === 'breaststroke' ||
-    normalized === 'breastroke' ||
-    normalized === 'breast'
+    normalized === "breaststroke" ||
+    normalized === "breastroke" ||
+    normalized === "breast"
   ) {
-    return 'breast'
+    return "breast";
   }
 
-  return 'free'
+  return "free";
 }
 
 function getStrokeFilterLabel(value: StrokeFilter) {
-  if (value === 'free') {
-    return 'Free'
+  if (value === "free") {
+    return "Free";
   }
 
-  if (value === 'fly') {
-    return 'Fly'
+  if (value === "fly") {
+    return "Fly";
   }
 
-  if (value === 'back') {
-    return 'Back'
+  if (value === "back") {
+    return "Back";
   }
 
-  if (value === 'breast') {
-    return 'Breast'
+  if (value === "breast") {
+    return "Breast";
   }
 
-  if (value === 'medley') {
-    return 'Medley'
+  if (value === "medley") {
+    return "Medley";
   }
 
-  return 'Stroke'
+  return "Stroke";
 }
 
 function getAvailableDistanceFilters(stroke: StrokeFilter) {
-  if (stroke === 'medley') {
-    return ['100', '200', '400'] as DistanceFilter[]
+  if (stroke === "medley") {
+    return ["100", "200", "400"] as DistanceFilter[];
   }
 
-  if (stroke === 'fly' || stroke === 'back' || stroke === 'breast') {
-    return ['25', '50', '100', '200'] as DistanceFilter[]
+  if (stroke === "fly" || stroke === "back" || stroke === "breast") {
+    return ["25", "50", "100", "200"] as DistanceFilter[];
   }
 
-  return ['25', '50', '100', '200', '400', '800', '1500'] as DistanceFilter[]
+  return ["25", "50", "100", "200", "400", "800", "1500"] as DistanceFilter[];
 }
 
 function normalizeSplits(value: unknown) {
   if (!Array.isArray(value)) {
-    return []
+    return [];
   }
 
-  return value.filter((split): split is number => typeof split === 'number' && split > 0)
+  return value.filter(
+    (split): split is number => typeof split === "number" && split > 0,
+  );
 }
 
-function hasMatchingSplitStructure(sourceSplits: number[], candidateSplits: number[]) {
-  return getComparableSplitCount(sourceSplits, candidateSplits) !== null
+function hasMatchingSplitStructure(
+  sourceSplits: number[],
+  candidateSplits: number[],
+) {
+  return getComparableSplitCount(sourceSplits, candidateSplits) !== null;
 }
 
-function getComparableSplitCount(sourceSplits: number[], candidateSplits: number[]) {
+function getComparableSplitCount(
+  sourceSplits: number[],
+  candidateSplits: number[],
+) {
   if (sourceSplits.length <= 1 || candidateSplits.length <= 1) {
-    return null
+    return null;
   }
 
-  const smallerSplitCount = Math.min(sourceSplits.length, candidateSplits.length)
-  const largerSplitCount = Math.max(sourceSplits.length, candidateSplits.length)
+  const smallerSplitCount = Math.min(
+    sourceSplits.length,
+    candidateSplits.length,
+  );
+  const largerSplitCount = Math.max(
+    sourceSplits.length,
+    candidateSplits.length,
+  );
 
   if (largerSplitCount % smallerSplitCount !== 0) {
-    return null
+    return null;
   }
 
-  return smallerSplitCount
+  return smallerSplitCount;
 }
 
-function normalizeSplitsForComparison(splits: number[], targetSplitCount: number) {
+function normalizeSplitsForComparison(
+  splits: number[],
+  targetSplitCount: number,
+) {
   if (splits.length === targetSplitCount) {
-    return splits
+    return splits;
   }
 
-  const groupSize = splits.length / targetSplitCount
-  const normalizedSplits: number[] = []
+  const groupSize = splits.length / targetSplitCount;
+  const normalizedSplits: number[] = [];
 
   for (let index = 0; index < targetSplitCount; index += 1) {
-    const start = index * groupSize
-    const end = start + groupSize
-    normalizedSplits.push(splits.slice(start, end).reduce((sum, split) => sum + split, 0))
+    const start = index * groupSize;
+    const end = start + groupSize;
+    normalizedSplits.push(
+      splits.slice(start, end).reduce((sum, split) => sum + split, 0),
+    );
   }
 
-  return normalizedSplits
+  return normalizedSplits;
 }
 
-function getSplitLabel(stroke: StrokeFilter, index: number, splitCount: number) {
-  if (stroke === 'medley' && splitCount === 4) {
-    return ['Fly', 'Back', 'Breast', 'Free'][index] ?? `${index + 1}`
+function getSplitLabel(
+  stroke: StrokeFilter,
+  index: number,
+  splitCount: number,
+) {
+  if (stroke === "medley" && splitCount === 4) {
+    return ["Fly", "Back", "Breast", "Free"][index] ?? `${index + 1}`;
   }
 
-  return `${index + 1}`
+  return `${index + 1}`;
 }
 
 function getSplitBarFill(split: number, splits: number[]) {
-  const fastestSplit = Math.min(...splits)
-  const slowestSplit = Math.max(...splits)
+  const fastestSplit = Math.min(...splits);
+  const slowestSplit = Math.max(...splits);
 
   if (fastestSplit === slowestSplit) {
-    return 'rgba(96,165,250,0.88)'
+    return "rgba(96,165,250,0.88)";
   }
 
-  const ratio = (split - fastestSplit) / (slowestSplit - fastestSplit)
-  const red = Math.round(147 - ratio * 88)
-  const green = Math.round(197 - ratio * 98)
-  const blue = Math.round(253 - ratio * 18)
+  const ratio = (split - fastestSplit) / (slowestSplit - fastestSplit);
+  const red = Math.round(147 - ratio * 88);
+  const green = Math.round(197 - ratio * 98);
+  const blue = Math.round(253 - ratio * 18);
 
-  return `rgba(${red},${green},${blue},0.92)`
+  return `rgba(${red},${green},${blue},0.92)`;
 }
 
 function formatSourceType(value: unknown) {
-  const sourceType = String(value).trim().toLowerCase()
+  const sourceType = String(value).trim().toLowerCase();
 
-  if (sourceType === 'training') {
-    return 'Training'
+  if (sourceType === "training") {
+    return "Training";
   }
 
-  return 'Competition'
+  return "Competition";
 }
 
 function getUnitFilterLabel(value: UnitFilter) {
-  return value === 'yards' ? 'Y' : 'M'
+  return value === "yards" ? "Y" : "M";
 }

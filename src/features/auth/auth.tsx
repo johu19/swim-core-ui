@@ -141,6 +141,21 @@ function AuthenticatedHome({ onSignOut }: { onSignOut: () => void }) {
   >('50')
   const [selectedChartPerformanceId, setSelectedChartPerformanceId] = useState<string | null>(null)
   const [chartUnitFilter, setChartUnitFilter] = useState<'meters' | 'yards'>('meters')
+  const effectiveSelectedStrokeFilter =
+    selectedStrokeFilter ?? getDefaultStrokeFilter(profileForm.favStroke)
+  const selectedAvailableDistances = getAvailableDistanceFiltersForStroke(effectiveSelectedStrokeFilter)
+  const effectiveSelectedDistanceFilter =
+    !selectedDistanceFilter || selectedAvailableDistances.includes(selectedDistanceFilter)
+      ? selectedDistanceFilter
+      : ''
+  const effectiveChartStrokeFilter =
+    chartStrokeFilter && getAvailableChartStrokeFilters(performances).includes(chartStrokeFilter)
+      ? chartStrokeFilter
+      : getDefaultChartStrokeFilter(profileForm.favStroke, performances)
+  const chartAvailableDistances = getAvailableDistanceFiltersForStroke(effectiveChartStrokeFilter)
+  const effectiveChartDistanceFilter = chartAvailableDistances.includes(chartDistanceFilter)
+    ? chartDistanceFilter
+    : chartAvailableDistances[0]
 
   useEffect(() => {
     let ignore = false
@@ -153,16 +168,13 @@ function AuthenticatedHome({ onSignOut }: { onSignOut: () => void }) {
         const response = await profileApi.getMeProfile()
         const nextProfileForm = mapProfileToForm(response.profile)
         const nextDefaultStrokeFilter = getDefaultStrokeFilter(nextProfileForm.favStroke)
-        const nextChartStrokeFilter = getDefaultChartStrokeFilter(
-          nextProfileForm.favStroke,
-          performances,
-        )
+        const nextChartStrokeFilter = normalizeChartStrokeFilter(nextProfileForm.favStroke)
 
         if (!ignore) {
           setProfileForm(nextProfileForm)
           setSavedProfileForm(nextProfileForm)
           setSelectedStrokeFilter((current) => current ?? nextDefaultStrokeFilter)
-          setChartStrokeFilter((current) => current ?? nextChartStrokeFilter)
+          setChartStrokeFilter((current) => current ?? nextChartStrokeFilter ?? current)
         }
       } catch (error) {
         if (!ignore) {
@@ -229,43 +241,6 @@ function AuthenticatedHome({ onSignOut }: { onSignOut: () => void }) {
     }
   }, [])
 
-  useEffect(() => {
-    setChartStrokeFilter((current) => {
-      if (current && getAvailableChartStrokeFilters(performances).includes(current)) {
-        return current
-      }
-
-      return getDefaultChartStrokeFilter(profileForm.favStroke, performances)
-    })
-  }, [performances, profileForm.favStroke])
-
-  useEffect(() => {
-    const normalizedStroke = selectedStrokeFilter ?? getDefaultStrokeFilter(profileForm.favStroke)
-    const availableDistances = getAvailableDistanceFiltersForStroke(normalizedStroke)
-
-    setSelectedDistanceFilter((current) => {
-      if (!current || availableDistances.includes(current)) {
-        return current
-      }
-
-      return ''
-    })
-  }, [profileForm.favStroke, selectedStrokeFilter])
-
-  useEffect(() => {
-    const normalizedStroke =
-      chartStrokeFilter ?? getDefaultChartStrokeFilter(profileForm.favStroke, performances)
-    const availableDistances = getAvailableDistanceFiltersForStroke(normalizedStroke)
-
-    setChartDistanceFilter((current) => {
-      if (availableDistances.includes(current)) {
-        return current
-      }
-
-      return availableDistances[0]
-    })
-  }, [chartStrokeFilter, performances, profileForm.favStroke])
-
   return (
     <main className="min-h-svh px-5 py-6 sm:px-8">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
@@ -308,17 +283,20 @@ function AuthenticatedHome({ onSignOut }: { onSignOut: () => void }) {
           <div className="pt-6">
             {activeTab === 'charts' ? (
               <Charts
-                distanceFilter={chartDistanceFilter}
+                distanceFilter={effectiveChartDistanceFilter}
                 onDistanceFilterChange={setChartDistanceFilter}
                 onSelectedPerformanceChange={setSelectedChartPerformanceId}
-                onStrokeFilterChange={setChartStrokeFilter}
+                onStrokeFilterChange={(value) => {
+                  setChartStrokeFilter(value)
+                  const availableDistances = getAvailableDistanceFiltersForStroke(value)
+                  setChartDistanceFilter((current) =>
+                    availableDistances.includes(current) ? current : availableDistances[0],
+                  )
+                }}
                 onUnitFilterChange={setChartUnitFilter}
                 performances={performances}
                 selectedPerformanceId={selectedChartPerformanceId}
-                strokeFilter={
-                  chartStrokeFilter ??
-                  getDefaultChartStrokeFilter(profileForm.favStroke, performances)
-                }
+                strokeFilter={effectiveChartStrokeFilter}
                 unitFilter={chartUnitFilter}
               />
             ) : activeTab === 'profile' ? (
@@ -416,14 +394,18 @@ function AuthenticatedHome({ onSignOut }: { onSignOut: () => void }) {
                     ),
                   )
                 }}
-                distanceFilter={selectedDistanceFilter}
+                distanceFilter={effectiveSelectedDistanceFilter}
                 onDistanceFilterChange={setSelectedDistanceFilter}
-                onStrokeFilterChange={setSelectedStrokeFilter}
+                onStrokeFilterChange={(value) => {
+                  setSelectedStrokeFilter(value)
+                  const availableDistances = getAvailableDistanceFiltersForStroke(value)
+                  setSelectedDistanceFilter((current) =>
+                    !current || availableDistances.includes(current) ? current : '',
+                  )
+                }}
                 onUnitFilterChange={setSelectedUnitFilter}
                 performances={performances}
-                strokeFilter={
-                  selectedStrokeFilter ?? getDefaultStrokeFilter(profileForm.favStroke)
-                }
+                strokeFilter={effectiveSelectedStrokeFilter}
                 unitFilter={selectedUnitFilter}
               />
             )}

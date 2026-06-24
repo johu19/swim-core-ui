@@ -1,8 +1,11 @@
+import React from 'react'
+import '@testing-library/jest-dom/vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { describe, expect, it } from 'vitest'
 
-import { Performances } from '@/features/performances/performances'
-import type { Performance } from '@/features/performances/performances-api'
+import { Performances } from '../../features/performances/performances'
+import type { Performance } from '../../features/performances/performances-api'
 
 const performances: Performance[] = [
   {

@@ -1,11 +1,14 @@
+import React from 'react'
+import '@testing-library/jest-dom/vitest'
 import { useState } from 'react'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { describe, expect, it } from 'vitest'
 
 import {
   PerformanceDialog,
   type PerformanceDialogForm,
-} from '@/features/performances/performance-dialog'
+} from '../../features/performances/performance-dialog'
 
 function TestDialog({
   initialForm,

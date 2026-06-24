@@ -1,8 +1,11 @@
+import React from 'react'
+import '@testing-library/jest-dom/vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'vitest'
 
-import { Profile } from '@/features/profile/profile'
-import type { UpdateProfileInput } from '@/features/profile/profile-api'
+import { Profile } from '../../features/profile/profile'
+import type { UpdateProfileInput } from '../../features/profile/profile-api'
 
 const baseForm: UpdateProfileInput = {
   birthDate: '2000-01-01',
