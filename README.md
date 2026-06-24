@@ -6,7 +6,13 @@ This app is being built as a mobile-first React application with desktop support
 
 ## Current Status
 
-The project is in early setup with Cognito authentication working locally. After sign-in, the app loads a simple authenticated home screen with `Profile` and `Performances` tabs. The `Profile` tab calls the Swim Core backend and renders the `GET /me/profile` response.
+The project has Cognito authentication working locally and now includes three authenticated product areas:
+
+- `Profile`
+- `Performances`
+- `Charts`
+
+The UI can load profile and performance data from the Swim Core backend, manage performances, and visualize filtered performance trends and split comparisons.
 
 ## Tech Stack
 
@@ -54,6 +60,8 @@ The local dev server runs on:
 npm run build
 npm run lint
 npm run preview
+npm run test
+npm run test:watch
 ```
 
 ## Project Notes
@@ -66,6 +74,8 @@ npm run preview
 - Cognito configuration is read from Vite environment variables.
 - API requests use `VITE_API_BASE_URL`.
 - The UI currently sends the Cognito `id_token` to the backend because the backend needs the email claim.
+- Component tests use `Vitest` and `Testing Library`.
+- A first GitHub Actions CI workflow lives in `.github/workflows/ci.yml`.
 
 ## Cognito Local URLs
 
@@ -74,12 +84,38 @@ When configuring the Cognito app client for local development, use:
 - Callback URL: `http://localhost:3000/auth/callback`
 - Logout URL: `http://localhost:3000/`
 
-## Current Authenticated API Check
+## Current App Capabilities
 
 After a successful local sign-in:
 
 - the UI calls `GET /me/profile`
-- the request is sent to `VITE_API_BASE_URL`
-- the response is still logged in the browser console
-- the `Profile` tab renders the response in a simple way
-- the `Performances` tab is currently a placeholder that says `Under development`
+- the UI calls `GET /performances`
+- requests are sent to `VITE_API_BASE_URL`
+- the `Profile` tab supports viewing and editing profile information
+- the `Performances` tab supports filtering, creating, editing, deleting, and viewing splits
+- the `Charts` tab supports filtered trend views, selected-performance details, split charts, and comparison mode for compatible performances
+
+## Testing
+
+The repo includes simple unit coverage for:
+
+- `Profile`
+- `Performances`
+- `PerformanceDialog`
+
+Run the suite with:
+
+```bash
+npm run test
+```
+
+## CI
+
+GitHub Actions runs the first CI pass on pull requests and pushes to `main`.
+
+The workflow currently runs:
+
+- `npm ci`
+- `npm run lint`
+- `npm run test`
+- `npm run build`
