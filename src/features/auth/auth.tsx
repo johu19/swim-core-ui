@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useState, type ReactNode } from 'react'
 import { LogIn, LogOut } from 'lucide-react'
 import { useAuth } from 'react-oidc-context'
 
@@ -49,7 +49,7 @@ function AuthenticatedAuth() {
   const auth = useAuth()
   const idToken = auth.user?.id_token ?? null
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     apiClient.setIdToken(idToken)
   }, [idToken])
 
