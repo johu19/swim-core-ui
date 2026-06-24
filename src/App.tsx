@@ -1,7 +1,7 @@
-import { AuthFlow } from '@/features/auth/auth-flow'
+import { Auth } from '@/features/auth/auth'
 
 function App() {
-  return <AuthFlow />
+  return <Auth />
 }
 
 export default App
