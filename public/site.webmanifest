@@ -1,0 +1,16 @@
+{
+  "name": "Swim Core",
+  "short_name": "Swim Core",
+  "description": "Track swimming performances, compare splits, and manage your Swim Core profile.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#eef5ff",
+  "theme_color": "#2456f5",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
