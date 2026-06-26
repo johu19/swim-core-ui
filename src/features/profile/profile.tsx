@@ -5,23 +5,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { type UpdateProfileInput } from '@/features/profile/profile-api'
 import { Button } from '@/components/ui/button'
 
-export function Profile(props: ProfileContentProps) {
-  return <ProfileContent {...props} />
-}
-
-type ProfileContentProps = {
-  form: UpdateProfileInput
-  isDirty: boolean
-  isEditing: boolean
-  isLoading: boolean
-  isSaving: boolean
-  onCancel: () => void
-  onChange: Dispatch<SetStateAction<UpdateProfileInput>>
-  onEdit: () => void
-  onSave: () => void
-}
-
-function ProfileContent({
+export function Profile({
   form,
   isDirty,
   isEditing,
@@ -31,7 +15,17 @@ function ProfileContent({
   onChange,
   onEdit,
   onSave,
-}: ProfileContentProps) {
+}: {
+  form: UpdateProfileInput
+  isDirty: boolean
+  isEditing: boolean
+  isLoading: boolean
+  isSaving: boolean
+  onCancel: () => void
+  onChange: Dispatch<SetStateAction<UpdateProfileInput>>
+  onEdit: () => void
+  onSave: () => void
+}) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -49,13 +43,13 @@ function ProfileContent({
 
       <div className="col-span-2">
         <ProfileField
-        allowEditing={false}
-        isEditing={isEditing}
-        label="Email"
-        placeholder="email"
-        type="email"
-        value={form.email}
-        onChange={(value) => onChange((current) => ({ ...current, email: value }))}
+          allowEditing={false}
+          isEditing={isEditing}
+          label="Email"
+          placeholder="email"
+          type="email"
+          value={form.email}
+          onChange={(value) => onChange((current) => ({ ...current, email: value }))}
         />
       </div>
       <ProfileField
@@ -217,9 +211,9 @@ function ProfileField({
   value,
 }: ProfileFieldProps) {
   const isReadOnly = !isEditing || !allowEditing
-  const displayValue = isReadOnly ? value : value
   const fieldPlaceholder = placeholder ?? label
   const showEmptyReadOnlyPlaceholder = isReadOnly && !value
+  const effectiveType = isReadOnly && type === 'date' ? 'text' : type
 
   return (
     <label className="grid min-w-0 gap-2">
@@ -230,8 +224,8 @@ function ProfileField({
         placeholder={showEmptyReadOnlyPlaceholder || !value ? fieldPlaceholder : undefined}
         readOnly={isReadOnly}
         tabIndex={isReadOnly ? -1 : undefined}
-        type={type}
-        value={displayValue}
+        type={effectiveType}
+        value={value}
       />
     </label>
   )

@@ -1,13 +1,9 @@
 import { useEffect, useLayoutEffect, useState, type ReactNode } from 'react'
-import { LogIn, LogOut } from 'lucide-react'
+import { BarChart3, GitCompareArrows, LogIn, LogOut, Timer } from 'lucide-react'
 import { useAuth } from 'react-oidc-context'
 import { toast } from 'sonner'
 
-import {
-  buildCognitoLogoutUrl,
-  isCognitoConfigured,
-  missingCognitoEnv,
-} from '@/auth/cognito'
+import { buildCognitoLogoutUrl, isCognitoConfigured, missingCognitoEnv } from '@/auth/cognito'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -71,31 +67,10 @@ function AuthenticatedAuth() {
     window.location.replace(logoutUrl)
   }
 
-  if (auth.activeNavigator === 'signinRedirect') {
-    return (
-      <StatusScreen
-        title="Redirecting"
-        message="Taking you to the Cognito sign-in page."
-      />
-    )
-  }
-
-  if (auth.activeNavigator === 'signinSilent') {
-    return <StatusScreen title="Refreshing session" message="Please wait a moment." />
-  }
-
-  if (auth.activeNavigator === 'signoutRedirect') {
-    return <StatusScreen title="Signing out" message="Closing your session securely." />
-  }
-
-  if (auth.isLoading) {
-    return <StatusScreen title="Loading" message="Checking your Swim Core session." />
-  }
-
   if (auth.error) {
     return (
       <AuthCardLayout
-        cardClassName="border-red-200 bg-white/90 shadow-[0_24px_60px_-32px_rgba(239,68,68,0.35)]"
+        cardClassName="border-red-200 bg-white/90 shadow-error"
         description={auth.error.message}
         footer={
           <Button onClick={signIn} size="lg">
@@ -109,17 +84,25 @@ function AuthenticatedAuth() {
     )
   }
 
-  if (!auth.isAuthenticated) {
-    return <SignInScreen onSignIn={signIn} />
+  const authStatusMessage =
+    auth.activeNavigator === 'signinRedirect'
+      ? 'Taking you to the sign-in page...'
+      : auth.activeNavigator === 'signinSilent'
+        ? 'Refreshing your session...'
+        : auth.activeNavigator === 'signoutRedirect'
+          ? 'Signing you out...'
+          : auth.isLoading
+            ? 'Checking your Swim Core session...'
+            : auth.isAuthenticated && !idToken
+              ? 'Finishing sign-in...'
+              : null
+
+  if (authStatusMessage) {
+    return <SignInScreen isBusy message={authStatusMessage} onSignIn={signIn} />
   }
 
-  if (!idToken) {
-    return (
-      <StatusScreen
-        title="Finishing sign-in"
-        message="Securing your session before loading Swim Core."
-      />
-    )
+  if (!auth.isAuthenticated) {
+    return <SignInScreen onSignIn={signIn} />
   }
 
   return <AuthenticatedHome onSignOut={() => void signOut()} />
@@ -151,7 +134,9 @@ function AuthenticatedHome({ onSignOut }: { onSignOut: () => void }) {
   const [chartUnitFilter, setChartUnitFilter] = useState<'meters' | 'yards'>('meters')
   const effectiveSelectedStrokeFilter =
     selectedStrokeFilter ?? getDefaultStrokeFilter(profileForm.favStroke)
-  const selectedAvailableDistances = getAvailableDistanceFiltersForStroke(effectiveSelectedStrokeFilter)
+  const selectedAvailableDistances = getAvailableDistanceFiltersForStroke(
+    effectiveSelectedStrokeFilter,
+  )
   const effectiveSelectedDistanceFilter =
     !selectedDistanceFilter || selectedAvailableDistances.includes(selectedDistanceFilter)
       ? selectedDistanceFilter
@@ -236,11 +221,11 @@ function AuthenticatedHome({ onSignOut }: { onSignOut: () => void }) {
   }, [])
 
   return (
-    <main className="min-h-svh px-4 py-4 sm:px-6 sm:py-5">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
+    <main className="flex h-svh flex-col px-4 py-4 sm:px-6 sm:py-5">
+      <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-4">
         <header className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="font-['Arial_Black','Avenir_Next_Condensed','Franklin_Gothic_Heavy',sans-serif] text-3xl tracking-[0.18em] text-primary sm:text-4xl">
+            <h1 className="font-brand text-3xl tracking-brand text-primary sm:text-4xl">
               SWIM CORE
             </h1>
           </div>
@@ -255,8 +240,8 @@ function AuthenticatedHome({ onSignOut }: { onSignOut: () => void }) {
           </Button>
         </header>
 
-        <section className="grid gap-3">
-          <div className="rounded-[1.5rem] border border-primary/10 bg-white/70 px-3 py-2 shadow-[0_20px_50px_-36px_rgba(37,99,235,0.24)] backdrop-blur">
+        <section className="flex min-h-0 flex-1 flex-col gap-3">
+          <div className="rounded-[1.5rem] border border-primary/10 bg-white/70 px-3 py-2 shadow-card-subtle backdrop-blur">
             <div className="flex justify-center gap-2">
               <TabButton
                 isActive={activeTab === 'profile'}
@@ -276,7 +261,7 @@ function AuthenticatedHome({ onSignOut }: { onSignOut: () => void }) {
             </div>
           </div>
 
-          <div className="max-h-[min(42rem,calc(100svh-10rem))] overflow-y-auto rounded-[1.75rem] border border-primary/10 bg-white/80 p-3 shadow-[0_24px_60px_-32px_rgba(37,99,235,0.28)] backdrop-blur">
+          <div className="min-h-0 flex-1 overflow-y-auto rounded-[1.75rem] border border-primary/10 bg-white/80 p-3 shadow-card backdrop-blur">
             <div className="pt-1">
               {activeTab === 'charts' ? (
                 <Charts
@@ -318,7 +303,6 @@ function AuthenticatedHome({ onSignOut }: { onSignOut: () => void }) {
                       const updatedProfile = await profileApi.updateMeProfile(profileForm)
 
                       if (updatedProfile) {
-                        console.log('PATCH /me/profile', updatedProfile)
                         const nextProfileForm = mapProfileToForm(updatedProfile.profile)
                         setProfileForm(nextProfileForm)
                         setSavedProfileForm(nextProfileForm)
@@ -342,12 +326,8 @@ function AuthenticatedHome({ onSignOut }: { onSignOut: () => void }) {
                   isLoading={isLoadingPerformances}
                   onCreate={async (input) => {
                     try {
-                      const createdPerformance =
-                        await performancesApi.createPerformance(input)
-                      const nextPerformance = normalizeCreatedPerformance(
-                        createdPerformance,
-                        input,
-                      )
+                      const createdPerformance = await performancesApi.createPerformance(input)
+                      const nextPerformance = normalizeCreatedPerformance(createdPerformance, input)
 
                       setPerformances((current) => [nextPerformance, ...current])
                       toast.success('Performance created')
@@ -359,8 +339,10 @@ function AuthenticatedHome({ onSignOut }: { onSignOut: () => void }) {
                   }}
                   onUpdate={async (performanceId, input) => {
                     try {
-                      const updatedPerformance =
-                        await performancesApi.updatePerformance(performanceId, input)
+                      const updatedPerformance = await performancesApi.updatePerformance(
+                        performanceId,
+                        input,
+                      )
                       setPerformances((current) =>
                         current.map((performance) => {
                           if (getPerformanceId(performance) !== performanceId) {
@@ -419,29 +401,82 @@ function AuthenticatedHome({ onSignOut }: { onSignOut: () => void }) {
   )
 }
 
-function SignInScreen({ onSignIn }: { onSignIn: () => void }) {
+function SignInScreen({
+  isBusy = false,
+  message,
+  onSignIn,
+}: {
+  isBusy?: boolean
+  message?: string
+  onSignIn: () => void
+}) {
   return (
-    <AuthCardLayout
-      description="Sign in with Cognito to access the authenticated preview."
-      footer={
-        <Button onClick={onSignIn} size="lg">
+    <main className="flex min-h-svh flex-col items-center justify-center px-5 py-10 sm:px-8">
+      <WaveDecoration />
+
+      <h1 className="mt-6 font-brand text-4xl tracking-brand text-primary sm:text-5xl">
+        SWIM CORE
+      </h1>
+
+      <p className="mt-3 max-w-xs text-center text-base leading-7 text-muted-foreground sm:text-lg">
+        Track your times, compare performances, and watch your progress.
+      </p>
+
+      <div className="mt-8 flex flex-col gap-3">
+        <div className="flex items-center gap-3 rounded-xl bg-primary/5 px-4 py-2.5">
+          <Timer className="size-4 shrink-0 text-primary" />
+          <span className="text-sm font-medium text-primary">Log times and splits</span>
+        </div>
+        <div className="flex items-center gap-3 rounded-xl bg-primary/5 px-4 py-2.5">
+          <BarChart3 className="size-4 shrink-0 text-primary" />
+          <span className="text-sm font-medium text-primary">Track your progress</span>
+        </div>
+        <div className="flex items-center gap-3 rounded-xl bg-primary/5 px-4 py-2.5">
+          <GitCompareArrows className="size-4 shrink-0 text-primary" />
+          <span className="text-sm font-medium text-primary">Compare performances</span>
+        </div>
+      </div>
+
+      {isBusy ? (
+        <div className="mt-10 flex flex-col items-center gap-3">
+          <Spinner className="text-primary" label="Loading authentication state" />
+          <p className="text-sm text-muted-foreground">{message}</p>
+        </div>
+      ) : (
+        <Button className="mt-10" onClick={onSignIn} size="lg">
           <LogIn className="size-4" />
           Sign in
         </Button>
-      }
-      titleClassName="font-['Arial_Black','Avenir_Next_Condensed','Franklin_Gothic_Heavy',sans-serif] tracking-[0.18em] text-primary"
-      title="SWIM CORE"
-    />
+      )}
+    </main>
   )
 }
 
-function StatusScreen({ message, title }: { message: string; title: string }) {
+function WaveDecoration() {
   return (
-    <AuthCardLayout
-      title={title}
-      description={message}
-      footer={<Spinner className="mx-auto text-primary" label={title} />}
-    />
+    <svg
+      aria-hidden="true"
+      className="w-40 text-primary sm:w-48"
+      viewBox="0 0 200 80"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle cx="100" cy="28" r="26" fill="currentColor" opacity="0.08" />
+      <path
+        d="M20 50 C32 38, 48 62, 60 50 C72 38, 88 62, 100 50 C112 38, 128 62, 140 50 C152 38, 168 62, 180 50"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="3"
+      />
+      <path
+        d="M20 62 C32 50, 48 74, 60 62 C72 50, 88 74, 100 62 C112 50, 128 74, 140 62 C152 50, 168 74, 180 62"
+        fill="none"
+        opacity="0.4"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="2"
+      />
+    </svg>
   )
 }
 
@@ -513,7 +548,7 @@ function AuthCardLayout({
     <main className="flex min-h-svh items-center justify-center px-5 py-10 sm:px-8">
       <Card
         className={cn(
-          'w-full max-w-md border-primary/15 bg-white/88 shadow-[0_24px_60px_-32px_rgba(37,99,235,0.45)] backdrop-blur',
+          'w-full max-w-md border-primary/15 bg-white/88 shadow-card-strong backdrop-blur',
           cardClassName,
         )}
       >
@@ -671,9 +706,7 @@ function normalizeChartStrokeFilter(
   return null
 }
 
-function getChartStrokeFilterValue(
-  value: unknown,
-): 'back' | 'breast' | 'fly' | 'free' | 'medley' {
+function getChartStrokeFilterValue(value: unknown): 'back' | 'breast' | 'fly' | 'free' | 'medley' {
   const normalized = String(value).trim().toLowerCase()
 
   if (normalized === 'freestyle' || normalized === 'free') {
@@ -692,11 +725,7 @@ function getChartStrokeFilterValue(
     return 'medley'
   }
 
-  if (
-    normalized === 'breaststroke' ||
-    normalized === 'breastroke' ||
-    normalized === 'breast'
-  ) {
+  if (normalized === 'breaststroke' || normalized === 'breastroke' || normalized === 'breast') {
     return 'breast'
   }
 
@@ -711,9 +740,7 @@ function getAvailableDistanceFiltersForStroke(
   }
 
   if (stroke === 'fly' || stroke === 'back' || stroke === 'breast') {
-    return ['25', '50', '100', '200'] as Array<
-      '25' | '50' | '100' | '200' | '400' | '800' | '1500'
-    >
+    return ['25', '50', '100', '200'] as Array<'25' | '50' | '100' | '200' | '400' | '800' | '1500'>
   }
 
   return ['25', '50', '100', '200', '400', '800', '1500'] as Array<

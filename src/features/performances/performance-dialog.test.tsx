@@ -10,11 +10,7 @@ import {
   type PerformanceDialogForm,
 } from '../../features/performances/performance-dialog'
 
-function TestDialog({
-  initialForm,
-}: {
-  initialForm: PerformanceDialogForm
-}) {
+function TestDialog({ initialForm }: { initialForm: PerformanceDialogForm }) {
   const [form, setForm] = useState(initialForm)
 
   return (
@@ -26,7 +22,6 @@ function TestDialog({
       onClose={() => {}}
       onSave={() => {}}
       saveDisabled={false}
-      title="Add Performance"
     />
   )
 }

@@ -8,10 +8,8 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90',
-        secondary:
-          'bg-primary/10 text-primary hover:bg-primary/15',
+        default: 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90',
+        secondary: 'bg-primary/10 text-primary hover:bg-primary/15',
       },
       size: {
         default: 'h-10 px-4 py-2',
@@ -31,12 +29,7 @@ function Button({
   variant,
   ...props
 }: React.ComponentProps<'button'> & VariantProps<typeof buttonVariants>) {
-  return (
-    <button
-      className={cn(buttonVariants({ className, size, variant }))}
-      {...props}
-    />
-  )
+  return <button className={cn(buttonVariants({ className, size, variant }))} {...props} />
 }
 
 export { Button }
