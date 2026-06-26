@@ -19,7 +19,6 @@ function TestDialog({
 
   return (
     <PerformanceDialog
-      error={null}
       form={form}
       isOpen
       isSaving={false}

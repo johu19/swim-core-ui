@@ -1,4 +1,8 @@
+import { X } from 'lucide-react'
+import { createPortal } from 'react-dom'
+
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 
 type PerformanceSplitForm = {
   hundredths: string
@@ -22,7 +26,6 @@ export type PerformanceDialogForm = {
 }
 
 type PerformanceDialogProps = {
-  error: string | null
   form: PerformanceDialogForm
   isOpen: boolean
   isSaving: boolean
@@ -30,11 +33,9 @@ type PerformanceDialogProps = {
   onClose: () => void
   onSave: () => void
   saveDisabled: boolean
-  title: string
 }
 
 export function PerformanceDialog({
-  error,
   form,
   isOpen,
   isSaving,
@@ -42,10 +43,10 @@ export function PerformanceDialog({
   onClose,
   onSave,
   saveDisabled,
-  title,
 }: PerformanceDialogProps) {
   const maxSplitCount = getMaxSplitCount(form.distance, form.poolLength)
   const availableSplitCounts = getAvailableSplitCountOptions(maxSplitCount, form.stroke)
+  const canConfigureSplits = availableSplitCounts.length > 0
   const splitTotalMilliseconds = getSplitTotalTimeMs(form.splits)
   const availableDistances = getAvailableDistanceOptions(form.stroke, form.poolLength)
 
@@ -92,26 +93,22 @@ export function PerformanceDialog({
     return null
   }
 
-  return (
+  const dialogContent = (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-white/10 px-3 pb-4 pt-8 backdrop-blur-sm sm:px-4 sm:pb-6 sm:pt-10">
-      <div className="w-full max-w-4xl overflow-hidden rounded-3xl border border-primary/10 bg-white p-4 shadow-[0_24px_60px_-32px_rgba(15,23,42,0.22)] sm:p-5">
+      <div className="flex max-h-[calc(100svh-3rem)] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-primary/10 bg-white p-4 shadow-[0_24px_60px_-32px_rgba(15,23,42,0.22)] sm:max-h-[calc(100svh-5rem)] sm:p-5">
         <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-semibold text-foreground">{title}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Enter the performance details and save to continue.
-            </p>
-          </div>
+          <div />
           <button
             type="button"
-            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="Close"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/10 bg-white text-foreground transition-colors hover:bg-primary/5"
             onClick={onClose}
           >
-            Close
+            <X className="size-4" />
           </button>
         </div>
 
-        <div className="mt-4 grid gap-3">
+        <div className="mt-4 grid flex-1 gap-3 overflow-y-auto pr-1">
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <FormInput
               label="Performed at"
@@ -187,37 +184,36 @@ export function PerformanceDialog({
             </FormSelect>
           </div>
 
-          <div className="rounded-2xl border border-primary/10 bg-primary/5 px-3 py-3 sm:px-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-sm font-medium text-foreground">Splits</div>
-              <div className="flex items-center gap-2">
-                {form.splitsEnabled && availableSplitCounts.length ? (
-                  <select
-                    aria-label="Number of splits"
-                    className="h-9 min-w-0 rounded-full border border-primary/15 bg-white px-3 text-center text-sm text-foreground outline-none transition-colors focus:border-primary"
-                    onChange={(event) => handleSplitCountChange(event.target.value)}
-                    value={form.splitCount}
+          {canConfigureSplits ? (
+            <div className="rounded-2xl border border-primary/10 bg-primary/5 px-3 py-3 sm:px-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-medium text-foreground">Splits</div>
+                <div className="flex items-center gap-2">
+                  {form.splitsEnabled ? (
+                    <select
+                      aria-label="Number of splits"
+                      className="h-9 min-w-0 rounded-full border border-primary/15 bg-white px-3 text-center text-sm text-foreground outline-none transition-colors focus:border-primary"
+                      onChange={(event) => handleSplitCountChange(event.target.value)}
+                      value={form.splitCount}
+                    >
+                      {availableSplitCounts.map((count) => (
+                        <option key={count} value={count}>
+                          {count}
+                        </option>
+                      ))}
+                    </select>
+                  ) : null}
+                  <button
+                    type="button"
+                    aria-label={form.splitsEnabled ? 'Remove splits' : 'Add splits'}
+                    className="flex size-9 items-center justify-center rounded-full border border-primary/15 bg-white text-xl leading-none text-primary shadow-sm transition-colors hover:bg-primary/5"
+                    onClick={handleToggleSplits}
                   >
-                    {availableSplitCounts.map((count) => (
-                      <option key={count} value={count}>
-                        {count}
-                      </option>
-                    ))}
-                  </select>
-                ) : null}
-                <button
-                  type="button"
-                  aria-label={form.splitsEnabled ? 'Remove splits' : 'Add splits'}
-                  className="flex size-9 items-center justify-center rounded-full border border-primary/15 bg-white text-xl leading-none text-primary shadow-sm transition-colors hover:bg-primary/5"
-                  onClick={handleToggleSplits}
-                >
-                  {form.splitsEnabled ? '−' : '+'}
-                </button>
+                    {form.splitsEnabled ? '−' : '+'}
+                  </button>
+                </div>
               </div>
-            </div>
-
-            {form.splitsEnabled ? (
-              availableSplitCounts.length ? (
+              {form.splitsEnabled ? (
                 <>
                   <div className="mt-3 text-sm font-medium text-foreground">
                     <span className="text-muted-foreground">Total: </span>
@@ -245,21 +241,32 @@ export function PerformanceDialog({
                     ))}
                   </div>
                 </>
-              ) : null
-            ) : null}
-          </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
-
-        {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
 
         <div className="mt-4 flex justify-end">
           <Button disabled={isSaving || saveDisabled} onClick={onSave}>
-            {isSaving ? 'Saving...' : 'Save'}
+            {isSaving ? (
+              <>
+                <Spinner label="Saving performance" />
+                Saving...
+              </>
+            ) : (
+              'Save'
+            )}
           </Button>
         </div>
       </div>
     </div>
   )
+
+  if (typeof document === 'undefined') {
+    return dialogContent
+  }
+
+  return createPortal(dialogContent, document.body)
 }
 
 function FormInput({
@@ -301,7 +308,7 @@ function FormSelect({
     <label className="grid min-w-0 gap-2">
       <span className="text-[13px] font-medium text-foreground sm:text-sm">{label}</span>
       <select
-        className="h-9 w-full min-w-0 rounded-xl border border-primary/15 bg-white px-2 text-[15px] text-foreground outline-none transition-colors focus:border-primary sm:h-10 sm:px-3 sm:text-sm"
+        className="h-9 w-full min-w-0 appearance-none rounded-xl border border-primary/15 bg-white px-2 text-[15px] text-foreground outline-none transition-colors focus:border-primary sm:h-10 sm:px-3 sm:text-sm"
         onChange={(event) => onChange(event.target.value)}
         value={value}
       >

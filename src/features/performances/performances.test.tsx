@@ -37,7 +37,6 @@ describe('Performances', () => {
     render(
       <Performances
         distanceFilter="50"
-        error={null}
         isLoading={false}
         onDistanceFilterChange={() => {}}
         onStrokeFilterChange={() => {}}
@@ -52,14 +51,13 @@ describe('Performances', () => {
     expect(screen.queryByText('100M Back')).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Add performance' }))
-    expect(screen.getByText('Add Performance')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument()
   })
 
   it('shows mandatory unit filter without a clear button', () => {
     render(
       <Performances
         distanceFilter=""
-        error={null}
         isLoading={false}
         onDistanceFilterChange={() => {}}
         onStrokeFilterChange={() => {}}
@@ -77,5 +75,33 @@ describe('Performances', () => {
     expect(
       within(filterContainer as HTMLElement).queryByRole('button', { name: /clear/i }),
     ).not.toBeInTheDocument()
+  })
+
+  it('keeps save disabled until a time is explicitly entered', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <Performances
+        distanceFilter=""
+        isLoading={false}
+        onDistanceFilterChange={() => {}}
+        onStrokeFilterChange={() => {}}
+        onUnitFilterChange={() => {}}
+        performances={performances}
+        strokeFilter=""
+        unitFilter="meters"
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Add performance' }))
+
+    const saveButton = screen.getByRole('button', { name: 'Save' })
+    const timeInputs = screen.getAllByPlaceholderText('00')
+
+    expect(saveButton).toBeDisabled()
+
+    await user.type(timeInputs[1] as HTMLInputElement, '33')
+
+    expect(saveButton).toBeEnabled()
   })
 })

@@ -1,5 +1,7 @@
 import { type Dispatch, type SetStateAction } from 'react'
+import { Check, Pencil, X } from 'lucide-react'
 
+import { Spinner } from '@/components/ui/spinner'
 import { type UpdateProfileInput } from '@/features/profile/profile-api'
 import { Button } from '@/components/ui/button'
 
@@ -8,7 +10,6 @@ export function Profile(props: ProfileContentProps) {
 }
 
 type ProfileContentProps = {
-  error: string | null
   form: UpdateProfileInput
   isDirty: boolean
   isEditing: boolean
@@ -18,11 +19,9 @@ type ProfileContentProps = {
   onChange: Dispatch<SetStateAction<UpdateProfileInput>>
   onEdit: () => void
   onSave: () => void
-  saveMessage: string | null
 }
 
 function ProfileContent({
-  error,
   form,
   isDirty,
   isEditing,
@@ -32,60 +31,51 @@ function ProfileContent({
   onChange,
   onEdit,
   onSave,
-  saveMessage,
 }: ProfileContentProps) {
   if (isLoading) {
-    return <p className="text-sm text-muted-foreground">Loading profile...</p>
+    return (
+      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+        <Spinner className="text-primary" label="Loading profile" />
+        <span>Loading profile...</span>
+      </div>
+    )
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      <div className="sm:col-span-2 flex items-center justify-between gap-4">
-        <p className="text-sm text-muted-foreground">
-          Review and update your profile information.
-        </p>
-        <div className="flex items-center gap-2">
-          {isEditing ? (
-            <Button onClick={onCancel} variant="secondary">
-              Cancel
-            </Button>
-          ) : (
-            <Button onClick={onEdit} variant="secondary">
-              Edit
-            </Button>
-          )}
-        </div>
+    <div className="grid grid-cols-2 gap-3">
+      <div className="col-span-2 flex justify-center">
+        <ProfileAvatar gender={form.gender} />
       </div>
 
-      <ProfileField
+      <div className="col-span-2">
+        <ProfileField
         allowEditing={false}
         isEditing={isEditing}
         label="Email"
+        placeholder="email"
         type="email"
         value={form.email}
         onChange={(value) => onChange((current) => ({ ...current, email: value }))}
-      />
+        />
+      </div>
       <ProfileField
         isEditing={isEditing}
         label="First name"
+        placeholder="first name"
         value={form.firstName}
         onChange={(value) => onChange((current) => ({ ...current, firstName: value }))}
       />
       <ProfileField
         isEditing={isEditing}
         label="Last name"
+        placeholder="last name"
         value={form.lastName}
         onChange={(value) => onChange((current) => ({ ...current, lastName: value }))}
       />
       <ProfileField
         isEditing={isEditing}
-        label="Team name"
-        value={form.teamName}
-        onChange={(value) => onChange((current) => ({ ...current, teamName: value }))}
-      />
-      <ProfileField
-        isEditing={isEditing}
         label="Birth date"
+        placeholder="birth date"
         type="date"
         value={form.birthDate}
         onChange={(value) => onChange((current) => ({ ...current, birthDate: value }))}
@@ -100,6 +90,13 @@ function ProfileContent({
           { label: 'Female', value: 'female' },
         ]}
         placeholder="Select gender"
+      />
+      <ProfileField
+        isEditing={isEditing}
+        label="Team name"
+        placeholder="team"
+        value={form.teamName}
+        onChange={(value) => onChange((current) => ({ ...current, teamName: value }))}
       />
       <ProfileSelectField
         isEditing={isEditing}
@@ -121,18 +118,81 @@ function ProfileContent({
         placeholder="No favorite stroke"
       />
 
-      <div className="sm:col-span-2">
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
-        {saveMessage ? <p className="text-sm text-primary">{saveMessage}</p> : null}
-      </div>
-
-      {isEditing && isDirty ? (
-        <div className="sm:col-span-2 flex justify-end">
-          <Button onClick={onSave} disabled={isSaving}>
-            {isSaving ? 'Saving...' : 'Save'}
-          </Button>
+      <div className="col-span-2 flex items-center justify-between">
+        <div className="flex min-h-10 items-center">
+          {isEditing && isDirty ? (
+            <Button
+              aria-label={isSaving ? 'Saving' : 'Save'}
+              className="h-10 w-10 px-0"
+              disabled={isSaving}
+              onClick={onSave}
+            >
+              {isSaving ? <Spinner label="Saving profile" /> : <Check className="size-4" />}
+            </Button>
+          ) : null}
         </div>
-      ) : null}
+        <div className="flex min-h-10 items-center">
+          {isEditing ? (
+            <Button
+              aria-label="Cancel"
+              className="h-10 w-10 border border-primary/10 bg-white px-0 text-foreground hover:bg-primary/5"
+              onClick={onCancel}
+              variant="secondary"
+            >
+              <X className="size-4" />
+            </Button>
+          ) : (
+            <Button
+              aria-label="Edit"
+              className="h-10 w-10 px-0"
+              onClick={onEdit}
+              variant="secondary"
+            >
+              <Pencil className="size-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ProfileAvatar({ gender }: { gender: string }) {
+  const isFemale = gender === 'female'
+  const backgroundClass = isFemale
+    ? 'from-rose-100 via-fuchsia-50 to-white'
+    : 'from-sky-100 via-cyan-50 to-white'
+  const accentClass = isFemale ? 'text-rose-400' : 'text-sky-500'
+  const fillClass = isFemale ? 'fill-rose-300' : 'fill-sky-300'
+
+  return (
+    <div
+      aria-label={isFemale ? 'Default female avatar' : 'Default male avatar'}
+      className={`flex h-12 w-12 items-center justify-center rounded-full border border-primary/10 bg-gradient-to-b ${backgroundClass} shadow-sm`}
+      role="img"
+    >
+      <svg
+        aria-hidden="true"
+        className={`h-8 w-8 ${accentClass}`}
+        viewBox="0 0 64 64"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <circle className={fillClass} cx="32" cy="22" r="12" />
+        <path
+          className={fillClass}
+          d={
+            isFemale
+              ? 'M32 36c-11.598 0-21 7.387-21 16.5V56h42v-3.5C53 43.387 43.598 36 32 36Z'
+              : 'M20 56v-4.5C20 43.492 25.373 38 32 38s12 5.492 12 13.5V56H20Z'
+          }
+        />
+        {isFemale ? (
+          <path
+            className={fillClass}
+            d="M19 21c1.33-8.496 7.366-14 13-14 5.635 0 11.67 5.504 13 14-2.987-2.285-7.32-3.428-13-3.428-5.68 0-10.013 1.143-13 3.428Z"
+          />
+        ) : null}
+      </svg>
     </div>
   )
 }
@@ -142,6 +202,7 @@ type ProfileFieldProps = {
   isEditing: boolean
   label: string
   onChange: (value: string) => void
+  placeholder?: string
   type?: 'email' | 'text' | 'date'
   value: string
 }
@@ -151,21 +212,26 @@ function ProfileField({
   isEditing,
   label,
   onChange,
+  placeholder,
   type = 'text',
   value,
 }: ProfileFieldProps) {
   const isReadOnly = !isEditing || !allowEditing
+  const displayValue = isReadOnly ? value : value
+  const fieldPlaceholder = placeholder ?? label
+  const showEmptyReadOnlyPlaceholder = isReadOnly && !value
 
   return (
-    <label className="grid gap-2">
-      <span className="text-sm font-medium text-foreground">{label}</span>
+    <label className="grid min-w-0 gap-2">
       <input
-        className="h-11 rounded-xl border border-primary/15 bg-white px-3 text-sm text-foreground outline-none transition-colors focus:border-primary read-only:pointer-events-none read-only:bg-primary/5 read-only:text-foreground/80"
+        aria-label={label}
+        className="h-11 w-full min-w-0 rounded-xl border border-primary/15 bg-white px-3 text-sm text-foreground placeholder:text-sm placeholder:italic placeholder:text-muted-foreground/80 outline-none transition-colors focus:border-primary read-only:pointer-events-none read-only:bg-primary/5 read-only:text-foreground/80"
         onChange={(event) => onChange(event.target.value)}
+        placeholder={showEmptyReadOnlyPlaceholder || !value ? fieldPlaceholder : undefined}
         readOnly={isReadOnly}
         tabIndex={isReadOnly ? -1 : undefined}
         type={type}
-        value={isReadOnly ? value || '-' : value}
+        value={displayValue}
       />
     </label>
   )
@@ -187,10 +253,10 @@ function ProfileSelectField({
   value: string
 }) {
   return (
-    <label className="grid gap-2">
-      <span className="text-sm font-medium text-foreground">{label}</span>
+    <label className="grid min-w-0 gap-2">
       <select
-        className="h-11 rounded-xl border border-primary/15 bg-white px-3 text-sm text-foreground outline-none transition-colors focus:border-primary disabled:pointer-events-none disabled:cursor-default disabled:bg-primary/5 disabled:text-foreground/80 disabled:opacity-100"
+        aria-label={label}
+        className="h-11 w-full min-w-0 appearance-none rounded-xl border border-primary/15 bg-white px-3 text-sm text-foreground outline-none transition-colors focus:border-primary disabled:pointer-events-none disabled:cursor-default disabled:bg-primary/5 disabled:text-foreground/80 disabled:opacity-100"
         disabled={!isEditing}
         onChange={(event) => onChange(event.target.value)}
         tabIndex={!isEditing ? -1 : undefined}
