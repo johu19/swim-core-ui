@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { GitCompareArrows, Rocket, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, GitCompareArrows, Rocket, X } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -14,7 +14,7 @@ import {
   YAxis,
 } from "recharts";
 
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { type Performance } from "@/features/performances/performances-api";
 
 type ChartsProps = {
@@ -188,6 +188,7 @@ export function Charts({
       timeMs: split,
     }));
   }, [selectedDatum, strokeFilter]);
+  const showSelectedSplitLabels = selectedSplitData.length <= 4;
 
   const compareEligiblePerformanceIds = useMemo(() => {
     if (!selectedDatum) {
@@ -245,55 +246,80 @@ export function Charts({
   }, [comparisonDatum, selectedDatum, strokeFilter]);
 
   const showComparisonSplitLabels = comparisonSplitData.length <= 2;
+  const isComparisonNavigationActive =
+    isCompareSelectionActive || effectiveComparisonPerformanceId !== null;
 
-  const handleChartPointSelect = (performanceId: string) => {
-    if (isCompareSelectionActive) {
-      if (
-        performanceId !== effectiveSelectedPerformanceId &&
-        compareEligiblePerformanceIds.has(performanceId)
-      ) {
-        setComparisonPerformanceId(performanceId);
-      }
+  const handlePrimarySelectionStep = (direction: -1 | 1) => {
+    const nextPerformanceId = getNextPrimaryPerformanceId(
+      chartData,
+      effectiveSelectedPerformanceId,
+      direction,
+    );
 
-      setIsCompareSelectionActive(false);
+    if (!nextPerformanceId) {
       return;
     }
 
-    onSelectedPerformanceChange(performanceId);
+    onSelectedPerformanceChange(nextPerformanceId);
 
-    if (performanceId === effectiveComparisonPerformanceId) {
+    if (nextPerformanceId === effectiveComparisonPerformanceId) {
       setComparisonPerformanceId(null);
     }
   };
 
+  const handleComparisonSelectionStep = (direction: -1 | 1) => {
+    const nextPerformanceId = getNextComparisonPerformanceId({
+      chartData,
+      compareEligiblePerformanceIds,
+      currentComparisonPerformanceId: effectiveComparisonPerformanceId,
+      direction,
+      selectedPerformanceId: effectiveSelectedPerformanceId,
+    });
+
+    if (!nextPerformanceId) {
+      return;
+    }
+
+    setComparisonPerformanceId(nextPerformanceId);
+    setIsCompareSelectionActive(false);
+  };
+
+  const canNavigatePrimarySelection = chartData.length > 1;
+  const canNavigateComparisonSelection = chartData.some(
+    (datum) =>
+      datum.performanceId !== effectiveSelectedPerformanceId &&
+      compareEligiblePerformanceIds.has(datum.performanceId),
+  );
+
   return (
-    <Card className="overflow-hidden border-primary/10 bg-white/90 shadow-[0_24px_60px_-32px_rgba(37,99,235,0.22)]">
-      <CardHeader className="gap-0 border-b border-primary/10 px-0 py-0">
-        <div className="flex justify-center gap-2 px-4 py-4 sm:px-6">
-          <CompactFilter
-            ariaLabel="Filter chart by distance"
-            label={`${distanceFilter}`}
-            onChange={(value) =>
-              onDistanceFilterChange(value as DistanceFilter)
-            }
-            value={distanceFilter}
-          >
-            {availableDistanceFilters.map((distance) => (
-              <option key={distance} value={distance}>
-                {distance}
-              </option>
-            ))}
-          </CompactFilter>
-          <CompactFilter
-            ariaLabel="Filter chart by unit"
-            label={getUnitFilterLabel(unitFilter)}
-            onChange={(value) => onUnitFilterChange(value as UnitFilter)}
-            value={unitFilter}
-          >
-            <option value="meters">M</option>
-            <option value="yards">Y</option>
-          </CompactFilter>
-        </div>
+    <div className="grid gap-2">
+      <div className="flex justify-center gap-2">
+        <CompactFilter
+          ariaLabel="Filter chart by distance"
+          label={`${distanceFilter}`}
+          onChange={(value) =>
+            onDistanceFilterChange(value as DistanceFilter)
+          }
+          value={distanceFilter}
+        >
+          {availableDistanceFilters.map((distance) => (
+            <option key={distance} value={distance}>
+              {distance}
+            </option>
+          ))}
+        </CompactFilter>
+        <CompactFilter
+          ariaLabel="Filter chart by unit"
+          label={getUnitFilterLabel(unitFilter)}
+          onChange={(value) => onUnitFilterChange(value as UnitFilter)}
+          value={unitFilter}
+        >
+          <option value="meters">M</option>
+          <option value="yards">Y</option>
+        </CompactFilter>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-primary/10 bg-white/75">
         <div className="flex w-full">
           {(["free", "fly", "back", "breast", "medley"] as StrokeFilter[]).map(
             (stroke, index) => {
@@ -320,9 +346,10 @@ export function Charts({
             },
           )}
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="pt-4">
+      <Card className="overflow-hidden border-primary/10 bg-white/90 shadow-[0_24px_60px_-32px_rgba(37,99,235,0.22)]">
+        <CardContent className="pt-3">
         {chartData.length ? (
           <div className="relative">
             <button
@@ -356,7 +383,7 @@ export function Charts({
                 <GitCompareArrows className="size-4" />
               )}
             </button>
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={220}>
               <LineChart
                 data={chartData}
                 margin={{ top: 0, right: 20, left: 20, bottom: 0 }}
@@ -379,7 +406,7 @@ export function Charts({
                       typeof cy !== "number" ||
                       !payload
                     ) {
-                      return <g />;
+                      return <g key="chart-dot-empty" />;
                     }
 
                     const isSelected =
@@ -390,8 +417,11 @@ export function Charts({
                     const isCompareEligible = compareEligiblePerformanceIds.has(
                       payload.performanceId,
                     );
+                    const showCompareCandidates =
+                      isCompareSelectionActive ||
+                      effectiveComparisonPerformanceId !== null;
                     const isDimmedForCompare =
-                      isCompareSelectionActive &&
+                      showCompareCandidates &&
                       isCompareEligible &&
                       !isSelected &&
                       !isComparison;
@@ -401,6 +431,7 @@ export function Charts({
                         cx={cx}
                         cy={cy}
                         className="transition-all duration-200 ease-out"
+                        key={`chart-dot-${payload.performanceId}`}
                         fill={
                           isSelected
                             ? "rgba(250,204,21,0.95)"
@@ -408,10 +439,7 @@ export function Charts({
                               ? "rgba(148,163,184,0.9)"
                               : "rgba(37,99,235,0.9)"
                         }
-                        onClick={() =>
-                          handleChartPointSelect(payload.performanceId)
-                        }
-                        r={isSelected ? 6.5 : isComparison ? 5 : 3.5}
+                        r={isSelected ? 6.5 : isComparison ? 5 : isDimmedForCompare ? 4.5 : 3.5}
                         stroke={
                           isSelected
                             ? "rgba(202,138,4,1)"
@@ -422,14 +450,7 @@ export function Charts({
                                 : "rgba(255,255,255,0.95)"
                         }
                         strokeWidth={isSelected ? 3 : isComparison ? 2.5 : 1.5}
-                        style={{
-                          cursor:
-                            isCompareSelectionActive &&
-                            !isSelected &&
-                            !isCompareEligible
-                              ? "not-allowed"
-                              : "pointer",
-                        }}
+                        style={{ cursor: "default" }}
                       />
                     );
                   }}
@@ -442,6 +463,50 @@ export function Charts({
                 />
               </LineChart>
             </ResponsiveContainer>
+            <div className="mt-2 flex items-center justify-center gap-2">
+              <button
+                type="button"
+                aria-label={
+                  isComparisonNavigationActive
+                    ? "Previous comparison performance"
+                    : "Previous performance"
+                }
+                className="flex size-8 items-center justify-center rounded-full border border-primary/10 bg-white/80 text-primary/70 shadow-sm transition-colors hover:bg-primary/5 hover:text-primary disabled:opacity-30"
+                disabled={
+                  isComparisonNavigationActive
+                    ? !canNavigateComparisonSelection
+                    : !canNavigatePrimarySelection
+                }
+                onClick={() =>
+                  isComparisonNavigationActive
+                    ? handleComparisonSelectionStep(-1)
+                    : handlePrimarySelectionStep(-1)
+                }
+              >
+                <ChevronLeft className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                aria-label={
+                  isComparisonNavigationActive
+                    ? "Next comparison performance"
+                    : "Next performance"
+                }
+                className="flex size-8 items-center justify-center rounded-full border border-primary/10 bg-white/80 text-primary/70 shadow-sm transition-colors hover:bg-primary/5 hover:text-primary disabled:opacity-30"
+                disabled={
+                  isComparisonNavigationActive
+                    ? !canNavigateComparisonSelection
+                    : !canNavigatePrimarySelection
+                }
+                onClick={() =>
+                  isComparisonNavigationActive
+                    ? handleComparisonSelectionStep(1)
+                    : handlePrimarySelectionStep(1)
+                }
+              >
+                <ChevronRight className="size-3.5" />
+              </button>
+            </div>
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-primary/15 bg-primary/5 px-6 py-12 text-center text-sm text-muted-foreground">
@@ -450,7 +515,7 @@ export function Charts({
         )}
 
         {bestTime !== null ? (
-          <div className="mt-0.5 flex items-center gap-2 px-1 text-sm font-medium text-foreground">
+          <div className="mt-4 flex items-center gap-2 px-1 text-sm font-medium text-foreground">
             <Rocket className="size-4 text-primary" />
             <span>
               {"Your best: "}
@@ -460,8 +525,8 @@ export function Charts({
         ) : null}
 
         {selectedDatum && comparisonDatum ? (
-          <div className="mt-3 rounded-xl border border-primary/10 bg-primary/5 px-3 py-3 text-sm text-foreground shadow-[0_16px_40px_-28px_rgba(15,23,42,0.2)]">
-            <div className="mb-3 text-center text-sm font-medium">
+          <div className="mt-2 rounded-xl border border-primary/10 bg-primary/5 px-3 py-2.5 text-sm text-foreground shadow-[0_16px_40px_-28px_rgba(15,23,42,0.2)]">
+            <div className="mb-2 text-center text-sm font-medium">
               <span className="text-amber-500">
                 {formatTime(selectedDatum.timeMs)}
               </span>
@@ -471,7 +536,7 @@ export function Charts({
               </span>
             </div>
             {comparisonSplitData.length ? (
-              <div className="h-48">
+              <div className="h-40">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={comparisonSplitData}
@@ -537,7 +602,7 @@ export function Charts({
             ) : null}
           </div>
         ) : selectedDatum ? (
-          <div className="mt-3 rounded-xl border border-primary/10 bg-primary/5 px-3 py-2 text-center text-sm text-foreground shadow-[0_16px_40px_-28px_rgba(15,23,42,0.2)]">
+          <div className="mt-2 rounded-xl border border-primary/10 bg-primary/5 px-3 py-2 text-center text-sm text-foreground shadow-[0_16px_40px_-28px_rgba(15,23,42,0.2)]">
             {bestTime !== null ? (
               selectedDatum.timeMs === bestTime ? (
                 <div className="text-emerald-600">This is your best</div>
@@ -559,7 +624,7 @@ export function Charts({
               {selectedDatum.fullDateLabel}
             </div>
             {selectedDatum.splits.length > 1 ? (
-              <div className="mt-3 h-40">
+              <div className="mt-2 h-32">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={selectedSplitData}
@@ -577,6 +642,12 @@ export function Charts({
                       tickLine={false}
                     />
                     <YAxis hide />
+                    {!showSelectedSplitLabels ? (
+                      <Tooltip
+                        cursor={{ fill: "rgba(37,99,235,0.06)" }}
+                        content={<SelectedSplitsTooltip />}
+                      />
+                    ) : null}
                     <Bar dataKey="timeMs" radius={[6, 6, 0, 0]}>
                       {selectedSplitData.map((split) => (
                         <Cell
@@ -584,35 +655,37 @@ export function Charts({
                           fill={getSplitBarFill(split.timeMs, split.splitSet)}
                         />
                       ))}
-                      <LabelList
-                        dataKey="timeMs"
-                        position="top"
-                        content={(props) => {
-                          const { x, y, width, value } = props;
+                      {showSelectedSplitLabels ? (
+                        <LabelList
+                          dataKey="timeMs"
+                          position="top"
+                          content={(props) => {
+                            const { x, y, width, value } = props;
 
-                          if (
-                            typeof x !== "number" ||
-                            typeof y !== "number" ||
-                            typeof width !== "number" ||
-                            typeof value !== "number"
-                          ) {
-                            return <g />;
-                          }
+                            if (
+                              typeof x !== "number" ||
+                              typeof y !== "number" ||
+                              typeof width !== "number" ||
+                              typeof value !== "number"
+                            ) {
+                              return <g />;
+                            }
 
-                          return (
-                            <text
-                              x={x + width / 2}
-                              y={y - 8}
-                              fill="rgba(100,116,139,0.95)"
-                              fontSize="11"
-                              fontWeight="600"
-                              textAnchor="middle"
-                            >
-                              {formatTime(value)}
-                            </text>
-                          );
-                        }}
-                      />
+                            return (
+                              <text
+                                x={x + width / 2}
+                                y={y - 8}
+                                fill="rgba(100,116,139,0.95)"
+                                fontSize="11"
+                                fontWeight="600"
+                                textAnchor="middle"
+                              >
+                                {formatTime(value)}
+                              </text>
+                            );
+                          }}
+                        />
+                      ) : null}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -620,8 +693,9 @@ export function Charts({
             ) : null}
           </div>
         ) : null}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -684,6 +758,114 @@ function ComparisonSplitsTooltip({
       ) : null}
     </div>
   );
+}
+
+function SelectedSplitsTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  label?: string | number;
+  payload?: Array<{ dataKey?: string; value?: number }>;
+}) {
+  if (!active || !payload?.length) {
+    return null;
+  }
+
+  const splitTime = payload.find((entry) => entry.dataKey === "timeMs")?.value;
+
+  return (
+    <div className="rounded-xl border border-primary/10 bg-white px-3 py-2 text-sm shadow-[0_16px_40px_-28px_rgba(15,23,42,0.35)]">
+      <div className="font-medium text-foreground">{`Split ${label}`}</div>
+      {typeof splitTime === "number" ? (
+        <div className="text-primary">{formatTime(splitTime)}</div>
+      ) : null}
+    </div>
+  );
+}
+
+function getNextPrimaryPerformanceId(
+  chartData: ChartDatum[],
+  currentPerformanceId: string | null,
+  direction: -1 | 1,
+) {
+  if (!chartData.length) {
+    return null;
+  }
+
+  const currentIndex = chartData.findIndex(
+    (datum) => datum.performanceId === currentPerformanceId,
+  );
+
+  if (currentIndex === -1) {
+    return chartData[0]?.performanceId ?? null;
+  }
+
+  const nextIndex =
+    (currentIndex + direction + chartData.length) % chartData.length;
+
+  return chartData[nextIndex]?.performanceId ?? null;
+}
+
+function getNextComparisonPerformanceId({
+  chartData,
+  compareEligiblePerformanceIds,
+  currentComparisonPerformanceId,
+  direction,
+  selectedPerformanceId,
+}: {
+  chartData: ChartDatum[];
+  compareEligiblePerformanceIds: Set<string>;
+  currentComparisonPerformanceId: string | null;
+  direction: -1 | 1;
+  selectedPerformanceId: string | null;
+}) {
+  const eligibleChartData = chartData.filter(
+    (datum) =>
+      datum.performanceId !== selectedPerformanceId &&
+      compareEligiblePerformanceIds.has(datum.performanceId),
+  );
+
+  if (!eligibleChartData.length) {
+    return null;
+  }
+
+  const currentIndex = eligibleChartData.findIndex(
+    (datum) => datum.performanceId === currentComparisonPerformanceId,
+  );
+
+  if (currentIndex !== -1) {
+    const nextIndex =
+      (currentIndex + direction + eligibleChartData.length) %
+      eligibleChartData.length;
+
+    return eligibleChartData[nextIndex]?.performanceId ?? null;
+  }
+
+  const selectedIndex = chartData.findIndex(
+    (datum) => datum.performanceId === selectedPerformanceId,
+  );
+
+  if (selectedIndex === -1) {
+    return eligibleChartData[0]?.performanceId ?? null;
+  }
+
+  for (let offset = 1; offset < chartData.length; offset += 1) {
+    const nextIndex =
+      (selectedIndex + direction * offset + chartData.length) % chartData.length;
+    const nextPerformanceId = chartData[nextIndex]?.performanceId;
+
+    if (
+      nextPerformanceId &&
+      nextPerformanceId !== selectedPerformanceId &&
+      compareEligiblePerformanceIds.has(nextPerformanceId)
+    ) {
+      return nextPerformanceId;
+    }
+  }
+
+  return eligibleChartData[0]?.performanceId ?? null;
 }
 
 function getDateValue(value: string | null | undefined) {

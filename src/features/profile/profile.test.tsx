@@ -21,7 +21,6 @@ describe('Profile', () => {
   it('shows loading state', () => {
     render(
       <Profile
-        error={null}
         form={baseForm}
         isDirty={false}
         isEditing={false}
@@ -31,7 +30,6 @@ describe('Profile', () => {
         onChange={() => {}}
         onEdit={() => {}}
         onSave={() => {}}
-        saveMessage={null}
       />,
     )
 
@@ -44,7 +42,6 @@ describe('Profile', () => {
 
     render(
       <Profile
-        error={null}
         form={baseForm}
         isDirty
         isEditing
@@ -54,7 +51,6 @@ describe('Profile', () => {
         onChange={() => {}}
         onEdit={() => {}}
         onSave={onSave}
-        saveMessage={null}
       />,
     )
 

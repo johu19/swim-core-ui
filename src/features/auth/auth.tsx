@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useState, type ReactNode } from 'react'
 import { LogIn, LogOut } from 'lucide-react'
 import { useAuth } from 'react-oidc-context'
+import { toast } from 'sonner'
 
 import {
   buildCognitoLogoutUrl,
@@ -16,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Spinner } from '@/components/ui/spinner'
 import { Charts } from '@/features/charts/charts'
 import { Performances } from '@/features/performances/performances'
 import {
@@ -31,7 +33,6 @@ import {
   type Profile as ProfileRecord,
   type UpdateProfileInput,
 } from '@/features/profile/profile-api'
-import { ApiError } from '@/lib/api/api-client'
 import { apiClient } from '@/lib/api/api-client'
 import { cn } from '@/lib/utils'
 
@@ -128,13 +129,10 @@ function AuthenticatedHome({ onSignOut }: { onSignOut: () => void }) {
   const [activeTab, setActiveTab] = useState<HomeTab>('performances')
   const [profileForm, setProfileForm] = useState<UpdateProfileInput>(emptyProfileForm)
   const [savedProfileForm, setSavedProfileForm] = useState<UpdateProfileInput>(emptyProfileForm)
-  const [profileError, setProfileError] = useState<string | null>(null)
   const [isLoadingProfile, setIsLoadingProfile] = useState(true)
   const [isSavingProfile, setIsSavingProfile] = useState(false)
-  const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [performances, setPerformances] = useState<Performance[]>([])
-  const [performancesError, setPerformancesError] = useState<string | null>(null)
   const [isLoadingPerformances, setIsLoadingPerformances] = useState(true)
   const [selectedStrokeFilter, setSelectedStrokeFilter] = useState<
     '' | 'back' | 'breast' | 'fly' | 'free' | 'medley' | null
@@ -173,7 +171,6 @@ function AuthenticatedHome({ onSignOut }: { onSignOut: () => void }) {
     async function loadProfile() {
       try {
         setIsLoadingProfile(true)
-        setProfileError(null)
 
         const response = await profileApi.getMeProfile()
         const nextProfileForm = mapProfileToForm(response.profile)
@@ -190,13 +187,7 @@ function AuthenticatedHome({ onSignOut }: { onSignOut: () => void }) {
         if (!ignore) {
           console.error('GET /me/profile failed', error)
 
-          if (error instanceof ApiError) {
-            setProfileError(error.message || `Request failed with status ${error.status}.`)
-          } else if (error instanceof Error) {
-            setProfileError(error.message)
-          } else {
-            setProfileError('Unable to load profile.')
-          }
+          toast.error('Unable to load profile.')
         }
       } finally {
         if (!ignore) {
@@ -218,7 +209,6 @@ function AuthenticatedHome({ onSignOut }: { onSignOut: () => void }) {
     async function loadPerformances() {
       try {
         setIsLoadingPerformances(true)
-        setPerformancesError(null)
 
         const response = await performancesApi.getPerformances()
 
@@ -229,13 +219,7 @@ function AuthenticatedHome({ onSignOut }: { onSignOut: () => void }) {
         if (!ignore) {
           console.error('GET /performances failed', error)
 
-          if (error instanceof ApiError) {
-            setPerformancesError(error.message || `Request failed with status ${error.status}.`)
-          } else if (error instanceof Error) {
-            setPerformancesError(error.message)
-          } else {
-            setPerformancesError('Unable to load performances.')
-          }
+          toast.error('Unable to load performances.')
         }
       } finally {
         if (!ignore) {
@@ -252,8 +236,8 @@ function AuthenticatedHome({ onSignOut }: { onSignOut: () => void }) {
   }, [])
 
   return (
-    <main className="min-h-svh px-5 py-6 sm:px-8">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
+    <main className="min-h-svh px-4 py-4 sm:px-6 sm:py-5">
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
         <header className="flex items-center justify-between gap-4">
           <div>
             <h1 className="font-['Arial_Black','Avenir_Next_Condensed','Franklin_Gothic_Heavy',sans-serif] text-3xl tracking-[0.18em] text-primary sm:text-4xl">
@@ -271,154 +255,163 @@ function AuthenticatedHome({ onSignOut }: { onSignOut: () => void }) {
           </Button>
         </header>
 
-        <section className="rounded-[1.75rem] border border-primary/10 bg-white/80 p-3 shadow-[0_24px_60px_-32px_rgba(37,99,235,0.28)] backdrop-blur">
-          <div className="flex justify-center gap-2 border-b border-primary/10 pb-3">
-            <TabButton
-              isActive={activeTab === 'profile'}
-              label="Profile"
-              onClick={() => setActiveTab('profile')}
-            />
-            <TabButton
-              isActive={activeTab === 'performances'}
-              label="Performances"
-              onClick={() => setActiveTab('performances')}
-            />
-            <TabButton
-              isActive={activeTab === 'charts'}
-              label="Charts"
-              onClick={() => setActiveTab('charts')}
-            />
+        <section className="grid gap-3">
+          <div className="rounded-[1.5rem] border border-primary/10 bg-white/70 px-3 py-2 shadow-[0_20px_50px_-36px_rgba(37,99,235,0.24)] backdrop-blur">
+            <div className="flex justify-center gap-2">
+              <TabButton
+                isActive={activeTab === 'profile'}
+                label="Profile"
+                onClick={() => setActiveTab('profile')}
+              />
+              <TabButton
+                isActive={activeTab === 'performances'}
+                label="Performances"
+                onClick={() => setActiveTab('performances')}
+              />
+              <TabButton
+                isActive={activeTab === 'charts'}
+                label="Charts"
+                onClick={() => setActiveTab('charts')}
+              />
+            </div>
           </div>
 
-          <div className="pt-6">
-            {activeTab === 'charts' ? (
-              <Charts
-                distanceFilter={effectiveChartDistanceFilter}
-                onDistanceFilterChange={setChartDistanceFilter}
-                onSelectedPerformanceChange={setSelectedChartPerformanceId}
-                onStrokeFilterChange={(value) => {
-                  setChartStrokeFilter(value)
-                  const availableDistances = getAvailableDistanceFiltersForStroke(value)
-                  setChartDistanceFilter((current) =>
-                    availableDistances.includes(current) ? current : availableDistances[0],
-                  )
-                }}
-                onUnitFilterChange={setChartUnitFilter}
-                performances={performances}
-                selectedPerformanceId={selectedChartPerformanceId}
-                strokeFilter={effectiveChartStrokeFilter}
-                unitFilter={chartUnitFilter}
-              />
-            ) : activeTab === 'profile' ? (
-              <Profile
-                error={profileError}
-                form={profileForm}
-                isDirty={!isSameProfileForm(profileForm, savedProfileForm)}
-                isEditing={isEditingProfile}
-                isLoading={isLoadingProfile}
-                isSaving={isSavingProfile}
-                onCancel={() => {
-                  setProfileForm(savedProfileForm)
-                  setSaveMessage(null)
-                  setProfileError(null)
-                  setIsEditingProfile(false)
-                }}
-                onChange={setProfileForm}
-                onEdit={() => {
-                  setSaveMessage(null)
-                  setProfileError(null)
-                  setIsEditingProfile(true)
-                }}
-                onSave={async () => {
-                  try {
-                    setIsSavingProfile(true)
-                    setProfileError(null)
-                    setSaveMessage(null)
-
-                    const updatedProfile = await profileApi.updateMeProfile(profileForm)
-
-                    if (updatedProfile) {
-                      console.log('PATCH /me/profile', updatedProfile)
-                      const nextProfileForm = mapProfileToForm(updatedProfile.profile)
-                      setProfileForm(nextProfileForm)
-                      setSavedProfileForm(nextProfileForm)
-                    } else {
-                      setSavedProfileForm(profileForm)
-                    }
-
+          <div className="max-h-[min(42rem,calc(100svh-10rem))] overflow-y-auto rounded-[1.75rem] border border-primary/10 bg-white/80 p-3 shadow-[0_24px_60px_-32px_rgba(37,99,235,0.28)] backdrop-blur">
+            <div className="pt-1">
+              {activeTab === 'charts' ? (
+                <Charts
+                  distanceFilter={effectiveChartDistanceFilter}
+                  onDistanceFilterChange={setChartDistanceFilter}
+                  onSelectedPerformanceChange={setSelectedChartPerformanceId}
+                  onStrokeFilterChange={(value) => {
+                    setChartStrokeFilter(value)
+                    const availableDistances = getAvailableDistanceFiltersForStroke(value)
+                    setChartDistanceFilter((current) =>
+                      availableDistances.includes(current) ? current : availableDistances[0],
+                    )
+                  }}
+                  onUnitFilterChange={setChartUnitFilter}
+                  performances={performances}
+                  selectedPerformanceId={selectedChartPerformanceId}
+                  strokeFilter={effectiveChartStrokeFilter}
+                  unitFilter={chartUnitFilter}
+                />
+              ) : activeTab === 'profile' ? (
+                <Profile
+                  form={profileForm}
+                  isDirty={!isSameProfileForm(profileForm, savedProfileForm)}
+                  isEditing={isEditingProfile}
+                  isLoading={isLoadingProfile}
+                  isSaving={isSavingProfile}
+                  onCancel={() => {
+                    setProfileForm(savedProfileForm)
                     setIsEditingProfile(false)
-                    setSaveMessage('Profile saved.')
-                  } catch (error) {
-                    console.error('PATCH /me/profile failed', error)
+                  }}
+                  onChange={setProfileForm}
+                  onEdit={() => {
+                    setIsEditingProfile(true)
+                  }}
+                  onSave={async () => {
+                    try {
+                      setIsSavingProfile(true)
 
-                    if (error instanceof ApiError) {
-                      setProfileError(
-                        error.message || `Request failed with status ${error.status}.`,
-                      )
-                    } else if (error instanceof Error) {
-                      setProfileError(error.message)
-                    } else {
-                      setProfileError('Unable to save profile.')
-                    }
-                  } finally {
-                    setIsSavingProfile(false)
-                  }
-                }}
-                saveMessage={saveMessage}
-              />
-            ) : (
-              <Performances
-                error={performancesError}
-                isLoading={isLoadingPerformances}
-                onCreate={async (input) => {
-                  const createdPerformance = await performancesApi.createPerformance(input)
-                  const nextPerformance = normalizeCreatedPerformance(createdPerformance, input)
+                      const updatedProfile = await profileApi.updateMeProfile(profileForm)
 
-                  setPerformances((current) => [nextPerformance, ...current])
-                }}
-                onUpdate={async (performanceId, input) => {
-                  const updatedPerformance = await performancesApi.updatePerformance(
-                    performanceId,
-                    input,
-                  )
-                  setPerformances((current) =>
-                    current.map((performance) => {
-                      if (getPerformanceId(performance) !== performanceId) {
-                        return performance
+                      if (updatedProfile) {
+                        console.log('PATCH /me/profile', updatedProfile)
+                        const nextProfileForm = mapProfileToForm(updatedProfile.profile)
+                        setProfileForm(nextProfileForm)
+                        setSavedProfileForm(nextProfileForm)
+                      } else {
+                        setSavedProfileForm(profileForm)
                       }
 
-                      return normalizeUpdatedPerformance(
-                        updatedPerformance,
-                        performance,
-                        performanceId,
+                      setIsEditingProfile(false)
+                      toast.success('Profile saved')
+                    } catch (error) {
+                      console.error('PATCH /me/profile failed', error)
+
+                      toast.error('Unable to save profile.')
+                    } finally {
+                      setIsSavingProfile(false)
+                    }
+                  }}
+                />
+              ) : (
+                <Performances
+                  isLoading={isLoadingPerformances}
+                  onCreate={async (input) => {
+                    try {
+                      const createdPerformance =
+                        await performancesApi.createPerformance(input)
+                      const nextPerformance = normalizeCreatedPerformance(
+                        createdPerformance,
                         input,
                       )
-                    }),
-                  )
-                }}
-                onDelete={async (performanceId) => {
-                  await performancesApi.deletePerformance(performanceId)
-                  setPerformances((current) =>
-                    current.filter(
-                      (performance) => getPerformanceId(performance) !== performanceId,
-                    ),
-                  )
-                }}
-                distanceFilter={effectiveSelectedDistanceFilter}
-                onDistanceFilterChange={setSelectedDistanceFilter}
-                onStrokeFilterChange={(value) => {
-                  setSelectedStrokeFilter(value)
-                  const availableDistances = getAvailableDistanceFiltersForStroke(value)
-                  setSelectedDistanceFilter((current) =>
-                    !current || availableDistances.includes(current) ? current : '',
-                  )
-                }}
-                onUnitFilterChange={setSelectedUnitFilter}
-                performances={performances}
-                strokeFilter={effectiveSelectedStrokeFilter}
-                unitFilter={selectedUnitFilter}
-              />
-            )}
+
+                      setPerformances((current) => [nextPerformance, ...current])
+                      toast.success('Performance created')
+                    } catch (error) {
+                      toast.error('Unable to create performance.')
+
+                      throw error
+                    }
+                  }}
+                  onUpdate={async (performanceId, input) => {
+                    try {
+                      const updatedPerformance =
+                        await performancesApi.updatePerformance(performanceId, input)
+                      setPerformances((current) =>
+                        current.map((performance) => {
+                          if (getPerformanceId(performance) !== performanceId) {
+                            return performance
+                          }
+
+                          return normalizeUpdatedPerformance(
+                            updatedPerformance,
+                            performance,
+                            performanceId,
+                            input,
+                          )
+                        }),
+                      )
+                      toast.success('Performance updated')
+                    } catch (error) {
+                      toast.error('Unable to update performance.')
+
+                      throw error
+                    }
+                  }}
+                  onDelete={async (performanceId) => {
+                    try {
+                      await performancesApi.deletePerformance(performanceId)
+                      setPerformances((current) =>
+                        current.filter(
+                          (performance) => getPerformanceId(performance) !== performanceId,
+                        ),
+                      )
+                    } catch (error) {
+                      toast.error('Unable to delete performance.')
+
+                      throw error
+                    }
+                  }}
+                  distanceFilter={effectiveSelectedDistanceFilter}
+                  onDistanceFilterChange={setSelectedDistanceFilter}
+                  onStrokeFilterChange={(value) => {
+                    setSelectedStrokeFilter(value)
+                    const availableDistances = getAvailableDistanceFiltersForStroke(value)
+                    setSelectedDistanceFilter((current) =>
+                      !current || availableDistances.includes(current) ? current : '',
+                    )
+                  }}
+                  onUnitFilterChange={setSelectedUnitFilter}
+                  performances={performances}
+                  strokeFilter={effectiveSelectedStrokeFilter}
+                  unitFilter={selectedUnitFilter}
+                />
+              )}
+            </div>
           </div>
         </section>
       </div>
@@ -443,7 +436,13 @@ function SignInScreen({ onSignIn }: { onSignIn: () => void }) {
 }
 
 function StatusScreen({ message, title }: { message: string; title: string }) {
-  return <AuthCardLayout title={title} description={message} />
+  return (
+    <AuthCardLayout
+      title={title}
+      description={message}
+      footer={<Spinner className="mx-auto text-primary" label={title} />}
+    />
+  )
 }
 
 function ConfigErrorScreen({ missingEnv }: { missingEnv: string[] }) {

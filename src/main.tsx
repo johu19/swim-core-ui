@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { AuthProvider } from 'react-oidc-context'
+import { Toaster } from 'sonner'
 
 import { cognitoAuthConfig, isCognitoConfigured } from '@/auth/cognito'
 
@@ -10,6 +11,7 @@ import App from './App.tsx'
 const app = (
   <StrictMode>
     <App />
+    <Toaster position="top-center" richColors />
   </StrictMode>
 )
 

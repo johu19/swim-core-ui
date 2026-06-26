@@ -1,6 +1,7 @@
-import { Pencil, Trash2, X } from 'lucide-react'
-import { useState } from 'react'
+import { ChevronLeft, ChevronRight, Pencil, Trash2, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
+import { Spinner } from '@/components/ui/spinner'
 import type {
   CreatePerformanceInput,
   Performance,
@@ -13,7 +14,6 @@ import {
 
 type PerformancesProps = {
   distanceFilter: DistanceFilter
-  error: string | null
   isLoading: boolean
   onCreate?: (input: CreatePerformanceInput) => Promise<void>
   onDistanceFilterChange: (value: DistanceFilter) => void
@@ -31,10 +31,10 @@ type SortDirection = 'asc' | 'desc'
 type DistanceFilter = '' | '25' | '50' | '100' | '200' | '400' | '800' | '1500'
 type StrokeFilter = '' | 'back' | 'breast' | 'fly' | 'free' | 'medley'
 type UnitFilter = 'meters' | 'yards'
+const PERFORMANCES_PER_PAGE = 10
 
 export function Performances({
   distanceFilter,
-  error,
   isLoading,
   onCreate,
   onDistanceFilterChange,
@@ -48,20 +48,18 @@ export function Performances({
 }: PerformancesProps) {
   const [sortKey, setSortKey] = useState<SortKey>('date')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const [currentPage, setCurrentPage] = useState(1)
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({})
   const [deletingRowId, setDeletingRowId] = useState<string | number | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
 
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
-  const [createError, setCreateError] = useState<string | null>(null)
   const [createPerformedAt, setCreatePerformedAt] = useState(getTodayDateValue())
   const [createForm, setCreateForm] = useState<PerformanceDialogForm>(createDefaultPerformanceForm())
 
   const [editingPerformanceId, setEditingPerformanceId] = useState<string | number | null>(null)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
-  const [editError, setEditError] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<PerformanceDialogForm>(createDefaultPerformanceForm())
   const availableDistanceFilters = getAvailableDistanceFilters(strokeFilter)
 
@@ -97,6 +95,23 @@ export function Performances({
     return 0
   })
 
+  const totalPages = Math.max(
+    1,
+    Math.ceil(sortedPerformances.length / PERFORMANCES_PER_PAGE),
+  )
+  const paginatedPerformances = sortedPerformances.slice(
+    (currentPage - 1) * PERFORMANCES_PER_PAGE,
+    currentPage * PERFORMANCES_PER_PAGE,
+  )
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [distanceFilter, sortDirection, sortKey, strokeFilter, unitFilter])
+
+  useEffect(() => {
+    setCurrentPage((current) => Math.min(current, totalPages))
+  }, [totalPages])
+
   const toggleSort = (nextSortKey: SortKey) => {
     if (sortKey === nextSortKey) {
       setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
@@ -115,7 +130,6 @@ export function Performances({
   }
 
   const openCreateDialog = () => {
-    setCreateError(null)
     setCreateForm(createDefaultPerformanceForm(createPerformedAt))
     setIsCreateOpen(true)
   }
@@ -125,14 +139,13 @@ export function Performances({
       return
     }
 
-    setCreateError(null)
     setCreatePerformedAt(createForm.performedAt)
     setIsCreateOpen(false)
   }
 
   return (
-    <div className="grid gap-4">
-      <div className="flex items-center justify-between gap-4">
+    <div className="grid gap-3">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <CompactFilter
             ariaLabel="Filter performances by stroke"
@@ -183,7 +196,6 @@ export function Performances({
       </div>
 
       <PerformanceDialog
-        error={createError}
         form={createForm}
         isOpen={isCreateOpen}
         isSaving={isCreating}
@@ -191,33 +203,23 @@ export function Performances({
         onClose={closeCreateDialog}
         onSave={async () => {
           if (typeof onCreate !== 'function') {
-            setCreateError('Create action is unavailable right now.')
             return
           }
 
           try {
             setIsCreating(true)
-            setCreateError(null)
             await onCreate(buildPerformanceInput(createForm))
             setCreatePerformedAt(createForm.performedAt)
             setIsCreateOpen(false)
             setCreateForm(createDefaultPerformanceForm(createForm.performedAt))
-          } catch (nextError) {
-            if (nextError instanceof Error) {
-              setCreateError(nextError.message)
-            } else {
-              setCreateError('Unable to create performance.')
-            }
           } finally {
             setIsCreating(false)
           }
         }}
         saveDisabled={!isPerformanceDialogComplete(createForm)}
-        title="Add Performance"
       />
 
       <PerformanceDialog
-        error={editError}
         form={editForm}
         isOpen={isEditOpen}
         isSaving={isUpdating}
@@ -227,45 +229,29 @@ export function Performances({
             return
           }
 
-          setEditError(null)
           setIsEditOpen(false)
           setEditingPerformanceId(null)
         }}
         onSave={async () => {
           if (editingPerformanceId === null || typeof onUpdate !== 'function') {
-            setEditError('Edit action is unavailable right now.')
             return
           }
 
           try {
             setIsUpdating(true)
-            setEditError(null)
             await onUpdate(editingPerformanceId, buildPerformanceInput(editForm))
             setIsEditOpen(false)
             setEditingPerformanceId(null)
-          } catch (nextError) {
-            if (nextError instanceof Error) {
-              setEditError(nextError.message)
-            } else {
-              setEditError('Unable to update performance.')
-            }
           } finally {
             setIsUpdating(false)
           }
         }}
         saveDisabled={!isPerformanceDialogComplete(editForm)}
-        title="Edit Performance"
       />
 
       <div className="overflow-hidden rounded-2xl border border-primary/10 bg-white">
-        {actionError ? (
-          <div className="border-b border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
-            {actionError}
-          </div>
-        ) : null}
-
         <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse text-left text-sm">
+          <table className="min-w-full border-collapse text-left text-xs">
             <thead className="bg-primary/5 text-foreground">
               <tr>
                 <SortableHeader
@@ -292,8 +278,9 @@ export function Performances({
               </tr>
             </thead>
             <tbody>
-              {sortedPerformances.map((performance, index) => {
-                const rowKey = getPerformanceKey(performance, index)
+              {paginatedPerformances.map((performance, index) => {
+                const pageIndex = (currentPage - 1) * PERFORMANCES_PER_PAGE + index
+                const rowKey = getPerformanceKey(performance, pageIndex)
 
                 return (
                   <PerformanceRow
@@ -301,17 +288,13 @@ export function Performances({
                     deletingRowId={deletingRowId}
                     isExpanded={expandedRows[rowKey] ?? false}
                     onDelete={onDelete}
-                    onDeleteError={setActionError}
                     onEdit={() => {
                       const performanceId = getPerformanceId(performance)
 
                       if (performanceId === null) {
-                        setActionError('Unable to edit this performance because it has no id.')
                         return
                       }
 
-                      setActionError(null)
-                      setEditError(null)
                       setEditingPerformanceId(performanceId)
                       setEditForm(mapPerformanceToDialogForm(performance))
                       setIsEditOpen(true)
@@ -328,16 +311,43 @@ export function Performances({
         </div>
 
         {isLoading ? (
-          <div className="border-t border-primary/10 px-4 py-4 text-sm text-muted-foreground">
-            Loading performances...
+          <div className="flex items-center gap-2 border-t border-primary/10 px-4 py-4 text-sm text-muted-foreground">
+            <Spinner className="text-primary" label="Loading performances" />
+            <span>Loading performances...</span>
           </div>
         ) : null}
-        {!isLoading && error ? (
-          <div className="border-t border-primary/10 px-4 py-4 text-sm text-red-600">{error}</div>
-        ) : null}
-        {!isLoading && !error && !performances.length ? (
+        {!isLoading && !filteredPerformances.length ? (
           <div className="border-t border-primary/10 px-4 py-4 text-sm text-muted-foreground">
-            No performances available.
+            {performances.length
+              ? 'No performances match the selected filters.'
+              : 'No performances available.'}
+          </div>
+        ) : null}
+        {!isLoading && filteredPerformances.length ? (
+          <div className="flex items-center justify-between border-t border-primary/10 px-4 py-3 text-sm text-muted-foreground">
+            <span>{`${currentPage} of ${totalPages}`}</span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label="Previous page"
+                className="rounded-full border border-primary/10 bg-white px-3 py-1 text-foreground transition-colors hover:bg-primary/5 disabled:opacity-50"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((current) => Math.max(1, current - 1))}
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+              <button
+                type="button"
+                aria-label="Next page"
+                className="rounded-full border border-primary/10 bg-white px-3 py-1 text-foreground transition-colors hover:bg-primary/5 disabled:opacity-50"
+                disabled={currentPage === totalPages}
+                onClick={() =>
+                  setCurrentPage((current) => Math.min(totalPages, current + 1))
+                }
+              >
+                <ChevronRight className="size-4" />
+              </button>
+            </div>
           </div>
         ) : null}
       </div>
@@ -389,7 +399,6 @@ function PerformanceRow({
   deletingRowId,
   isExpanded,
   onDelete,
-  onDeleteError,
   onEdit,
   onToggleExpanded,
   performance,
@@ -399,7 +408,6 @@ function PerformanceRow({
   deletingRowId: string | number | null
   isExpanded: boolean
   onDelete?: (performanceId: string | number) => Promise<void>
-  onDeleteError: (value: string | null) => void
   onEdit: () => void
   onToggleExpanded: () => void
   performance: Performance
@@ -455,13 +463,16 @@ function PerformanceRow({
                     onClick={() =>
                       void handleDeletePerformance({
                         onDelete,
-                        onDeleteError,
                         performanceId,
                         setDeletingRowId,
                       })
                     }
                   >
-                    <Trash2 className="size-4" />
+                    {isDeleting ? (
+                      <Spinner label="Deleting performance" />
+                    ) : (
+                      <Trash2 className="size-4" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -548,8 +559,26 @@ function isPerformanceDialogComplete(form: PerformanceDialogForm) {
       form.distance.trim() &&
       form.poolLength.trim() &&
       form.poolLengthUnit.trim() &&
-      form.sourceType.trim(),
+      form.sourceType.trim() &&
+      hasExplicitTimeParts(form) &&
+      hasCompleteSplitTimes(form),
   )
+}
+
+function hasExplicitTimeParts(form: { hundredths: string; minutes: string; seconds: string }) {
+  return Boolean(form.minutes.trim() || form.seconds.trim() || form.hundredths.trim())
+}
+
+function hasCompleteSplitTimes(form: PerformanceDialogForm) {
+  if (!form.splitsEnabled) {
+    return true
+  }
+
+  if (!form.splits.length) {
+    return false
+  }
+
+  return form.splits.every((split) => hasExplicitTimeParts(split))
 }
 
 function getPerformanceKey(performance: Performance, index: number) {
@@ -581,15 +610,11 @@ function formatPerformedAt(value: string | null | undefined) {
     return value
   }
 
-  const formattedDate = date.toLocaleDateString('en-US', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC',
-  })
-    .replace(',', ' -')
+  const day = String(date.getUTCDate()).padStart(2, '0')
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const year = date.getUTCFullYear()
 
-  return formattedDate
+  return `${day}-${month}-${year}`
 }
 
 function formatDistance(
@@ -902,6 +927,11 @@ function getDateSortValue(value: string | null | undefined) {
 function buildPerformanceInput(form: PerformanceDialogForm): CreatePerformanceInput {
   const distance = parseRequiredNumber(form.distance, 'Distance')
   const poolLength = parseRequiredNumber(form.poolLength, 'Pool length')
+
+  if (!hasExplicitTimeParts(form)) {
+    throw new Error('Time is required.')
+  }
+
   const timeMs = parseTimePartsToMilliseconds({
     hundredths: form.hundredths,
     minutes: form.minutes,
@@ -990,6 +1020,10 @@ function parseSplitToMilliseconds(
   split: { hundredths: string; minutes: string; seconds: string },
   index: number,
 ) {
+  if (!hasExplicitTimeParts(split)) {
+    throw new Error(`Split ${index} time is required.`)
+  }
+
   const minutes = parseTimePart(split.minutes, `Split ${index} minutes`)
   const seconds = parseTimePart(split.seconds, `Split ${index} seconds`)
   const hundredths = parseHundredthsPart(split.hundredths, `Split ${index} hundredths`)
@@ -1033,35 +1067,24 @@ function parseHundredthsPart(value: string, label: string) {
 
 async function handleDeletePerformance({
   onDelete,
-  onDeleteError,
   performanceId,
   setDeletingRowId,
 }: {
   onDelete?: (performanceId: string | number) => Promise<void>
-  onDeleteError: (value: string | null) => void
   performanceId: string | number | null
   setDeletingRowId: (value: string | number | null) => void
 }) {
   if (performanceId === null) {
-    onDeleteError('Unable to delete this performance because it has no id.')
     return
   }
 
   if (typeof onDelete !== 'function') {
-    onDeleteError('Delete action is unavailable right now.')
     return
   }
 
   try {
     setDeletingRowId(performanceId)
-    onDeleteError(null)
     await onDelete(performanceId)
-  } catch (error) {
-    if (error instanceof Error) {
-      onDeleteError(error.message)
-    } else {
-      onDeleteError('Unable to delete performance.')
-    }
   } finally {
     setDeletingRowId(null)
   }
