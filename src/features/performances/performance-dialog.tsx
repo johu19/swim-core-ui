@@ -61,9 +61,7 @@ export function PerformanceDialog({
       ? form.distance
       : (nextDistances[0] ?? '')
 
-    onChange(
-      syncPerformanceSplits({ ...form, distance: nextDistance, poolLength: nextPoolLength }),
-    )
+    onChange(syncPerformanceSplits({ ...form, distance: nextDistance, poolLength: nextPoolLength }))
   }
 
   const handleStrokeChange = (value: string) => {
@@ -95,7 +93,7 @@ export function PerformanceDialog({
 
   const dialogContent = (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-white/10 px-3 pb-4 pt-8 backdrop-blur-sm sm:px-4 sm:pb-6 sm:pt-10">
-      <div className="flex max-h-[calc(100svh-3rem)] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-primary/10 bg-white p-4 shadow-[0_24px_60px_-32px_rgba(15,23,42,0.22)] sm:max-h-[calc(100svh-5rem)] sm:p-5">
+      <div className="flex max-h-[calc(100svh-3rem)] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-primary/10 bg-white p-4 shadow-dialog sm:max-h-[calc(100svh-5rem)] sm:p-5">
         <div className="flex items-start justify-between gap-4">
           <div />
           <button
@@ -116,11 +114,7 @@ export function PerformanceDialog({
               value={form.performedAt}
               onChange={(value) => onChange({ ...form, performedAt: value })}
             />
-            <FormSelect
-              label="Stroke"
-              value={form.stroke}
-              onChange={handleStrokeChange}
-            >
+            <FormSelect label="Stroke" value={form.stroke} onChange={handleStrokeChange}>
               <option value="freestyle">freestyle</option>
               <option value="backstroke">backstroke</option>
               <option value="butterfly">butterfly</option>
@@ -130,11 +124,7 @@ export function PerformanceDialog({
           </div>
 
           <div className="grid grid-cols-3 gap-2 sm:gap-3">
-            <FormSelect
-              label="Distance"
-              value={form.distance}
-              onChange={handleDistanceChange}
-            >
+            <FormSelect label="Distance" value={form.distance} onChange={handleDistanceChange}>
               {availableDistances.map((distance) => (
                 <option key={distance} value={distance}>
                   {distance}
@@ -457,10 +447,7 @@ function getAvailableSplitCountOptions(
   return [...options].sort((left, right) => left - right).map(String)
 }
 
-function getAvailableDistanceOptions(
-  stroke: PerformanceDialogForm['stroke'],
-  poolLength: string,
-) {
+function getAvailableDistanceOptions(stroke: PerformanceDialogForm['stroke'], poolLength: string) {
   const includesSprint25 = poolLength === '25'
 
   if (stroke === 'medley') {
@@ -473,9 +460,7 @@ function getAvailableDistanceOptions(
       : ['50', '100', '200', '400', '800', '1500']
   }
 
-  return includesSprint25
-    ? ['25', '50', '100', '200']
-    : ['50', '100', '200']
+  return includesSprint25 ? ['25', '50', '100', '200'] : ['50', '100', '200']
 }
 
 function getMaxSplitCount(distance: string, poolLength: string) {

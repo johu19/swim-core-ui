@@ -2,39 +2,21 @@ import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-function Card({
-  className,
-  ...props
-}: React.ComponentProps<'div'>) {
+function Card({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="card"
-      className={cn(
-        'rounded-xl border border-border/70 bg-card text-card-foreground',
-        className,
-      )}
+      className={cn('rounded-xl border border-border/70 bg-card text-card-foreground', className)}
       {...props}
     />
   )
 }
 
-function CardHeader({
-  className,
-  ...props
-}: React.ComponentProps<'div'>) {
-  return (
-    <div
-      data-slot="card-header"
-      className={cn('flex flex-col p-6', className)}
-      {...props}
-    />
-  )
+function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
+  return <div data-slot="card-header" className={cn('flex flex-col p-6', className)} {...props} />
 }
 
-function CardTitle({
-  className,
-  ...props
-}: React.ComponentProps<'div'>) {
+function CardTitle({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="card-title"
@@ -44,10 +26,7 @@ function CardTitle({
   )
 }
 
-function CardDescription({
-  className,
-  ...props
-}: React.ComponentProps<'p'>) {
+function CardDescription({ className, ...props }: React.ComponentProps<'p'>) {
   return (
     <p
       data-slot="card-description"
@@ -57,23 +36,11 @@ function CardDescription({
   )
 }
 
-function CardContent({
-  className,
-  ...props
-}: React.ComponentProps<'div'>) {
-  return (
-    <div
-      data-slot="card-content"
-      className={cn('px-6 pb-6', className)}
-      {...props}
-    />
-  )
+function CardContent({ className, ...props }: React.ComponentProps<'div'>) {
+  return <div data-slot="card-content" className={cn('px-6 pb-6', className)} {...props} />
 }
 
-function CardFooter({
-  className,
-  ...props
-}: React.ComponentProps<'div'>) {
+function CardFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="card-footer"

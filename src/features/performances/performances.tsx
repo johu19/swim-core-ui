@@ -55,7 +55,9 @@ export function Performances({
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [createPerformedAt, setCreatePerformedAt] = useState(getTodayDateValue())
-  const [createForm, setCreateForm] = useState<PerformanceDialogForm>(createDefaultPerformanceForm())
+  const [createForm, setCreateForm] = useState<PerformanceDialogForm>(
+    createDefaultPerformanceForm(),
+  )
 
   const [editingPerformanceId, setEditingPerformanceId] = useState<string | number | null>(null)
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -95,10 +97,7 @@ export function Performances({
     return 0
   })
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(sortedPerformances.length / PERFORMANCES_PER_PAGE),
-  )
+  const totalPages = Math.max(1, Math.ceil(sortedPerformances.length / PERFORMANCES_PER_PAGE))
   const paginatedPerformances = sortedPerformances.slice(
     (currentPage - 1) * PERFORMANCES_PER_PAGE,
     currentPage * PERFORMANCES_PER_PAGE,
@@ -311,20 +310,20 @@ export function Performances({
         </div>
 
         {isLoading ? (
-          <div className="flex items-center gap-2 border-t border-primary/10 px-4 py-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 border-t border-primary/10 px-3 py-3 text-sm text-muted-foreground sm:px-4 sm:py-4">
             <Spinner className="text-primary" label="Loading performances" />
             <span>Loading performances...</span>
           </div>
         ) : null}
         {!isLoading && !filteredPerformances.length ? (
-          <div className="border-t border-primary/10 px-4 py-4 text-sm text-muted-foreground">
+          <div className="border-t border-primary/10 px-3 py-3 text-sm text-muted-foreground sm:px-4 sm:py-4">
             {performances.length
               ? 'No performances match the selected filters.'
               : 'No performances available.'}
           </div>
         ) : null}
         {!isLoading && filteredPerformances.length ? (
-          <div className="flex items-center justify-between border-t border-primary/10 px-4 py-3 text-sm text-muted-foreground">
+          <div className="flex items-center justify-between border-t border-primary/10 px-3 py-2.5 text-sm text-muted-foreground sm:px-4 sm:py-3">
             <span>{`${currentPage} of ${totalPages}`}</span>
             <div className="flex items-center gap-2">
               <button
@@ -341,9 +340,7 @@ export function Performances({
                 aria-label="Next page"
                 className="rounded-full border border-primary/10 bg-white px-3 py-1 text-foreground transition-colors hover:bg-primary/5 disabled:opacity-50"
                 disabled={currentPage === totalPages}
-                onClick={() =>
-                  setCurrentPage((current) => Math.min(totalPages, current + 1))
-                }
+                onClick={() => setCurrentPage((current) => Math.min(totalPages, current + 1))}
               >
                 <ChevronRight className="size-4" />
               </button>
@@ -420,25 +417,32 @@ function PerformanceRow({
 
   return (
     <>
-      <tr className="border-t border-primary/10">
-        <td className="px-4 py-3">
-          <button
-            type="button"
-            onClick={onToggleExpanded}
-            className="inline-flex items-center gap-2 text-left font-medium text-primary"
-          >
+      <tr
+        className="border-t border-primary/10"
+        onClick={onToggleExpanded}
+        role="button"
+        tabIndex={0}
+      >
+        <td className="px-3 py-3 sm:px-4">
+          <span className="inline-flex items-center gap-2 font-medium text-primary">
             <span className="text-xs text-muted-foreground">{isExpanded ? '−' : '+'}</span>
-            <span>{formatEventLabel(performance.distance, performance.poolLengthUnit, performance.stroke)}</span>
-          </button>
+            <span>
+              {formatEventLabel(
+                performance.distance,
+                performance.poolLengthUnit,
+                performance.stroke,
+              )}
+            </span>
+          </span>
         </td>
-        <td className="px-4 py-3">{formatTime(performance.timeMs)}</td>
-        <td className="px-4 py-3">{formatPerformedAt(performance.performedAt)}</td>
+        <td className="px-3 py-3 sm:px-4">{formatTime(performance.timeMs)}</td>
+        <td className="px-3 py-3 sm:px-4">{formatPerformedAt(performance.performedAt)}</td>
       </tr>
       {isExpanded ? (
         <tr key={`${rowKey}-details`} className="border-t border-primary/5 bg-primary/5">
-          <td colSpan={3} className="px-4 py-4">
+          <td colSpan={3} className="px-3 py-3 sm:px-4 sm:py-4">
             <div className="grid gap-4">
-              <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-primary/10 bg-white px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/10 bg-white px-3 py-3 sm:px-4">
                 <div className="text-sm font-medium text-foreground">
                   {formatPoolEventSummary(
                     performance.poolLength,
@@ -477,7 +481,7 @@ function PerformanceRow({
                 </div>
               </div>
               {splits.length ? (
-                <div className="rounded-xl border border-primary/10 bg-white px-4 py-3">
+                <div className="rounded-xl border border-primary/10 bg-white px-3 py-3 sm:px-4">
                   <div className="text-xs font-semibold uppercase tracking-[0.14em] text-primary/55">
                     Splits
                   </div>
@@ -507,12 +511,14 @@ function PerformanceRow({
 
 function SortableHeader({
   activeSortKey,
+  className,
   direction,
   label,
   onClick,
   sortKey,
 }: {
   activeSortKey: SortKey
+  className?: string
   direction: SortDirection
   label: string
   onClick: () => void
@@ -522,12 +528,8 @@ function SortableHeader({
   const indicator = isActive ? (direction === 'asc' ? '↑' : '↓') : ''
 
   return (
-    <th className="px-4 py-3 font-medium">
-      <button
-        type="button"
-        onClick={onClick}
-        className="inline-flex items-center gap-1 text-left"
-      >
+    <th className={`px-3 py-3 font-medium sm:px-4 ${className ?? ''}`}>
+      <button type="button" onClick={onClick} className="inline-flex items-center gap-1 text-left">
         <span>{label}</span>
         <span className="text-xs text-muted-foreground">{indicator}</span>
       </button>
@@ -555,13 +557,13 @@ function createDefaultPerformanceForm(performedAt = getTodayDateValue()): Perfor
 function isPerformanceDialogComplete(form: PerformanceDialogForm) {
   return Boolean(
     form.performedAt.trim() &&
-      form.stroke.trim() &&
-      form.distance.trim() &&
-      form.poolLength.trim() &&
-      form.poolLengthUnit.trim() &&
-      form.sourceType.trim() &&
-      hasExplicitTimeParts(form) &&
-      hasCompleteSplitTimes(form),
+    form.stroke.trim() &&
+    form.distance.trim() &&
+    form.poolLength.trim() &&
+    form.poolLengthUnit.trim() &&
+    form.sourceType.trim() &&
+    hasExplicitTimeParts(form) &&
+    hasCompleteSplitTimes(form),
   )
 }
 
@@ -804,11 +806,7 @@ function getStrokeFilterValue(value: unknown): StrokeFilter {
     return 'medley'
   }
 
-  if (
-    normalized === 'breaststroke' ||
-    normalized === 'breastroke' ||
-    normalized === 'breast'
-  ) {
+  if (normalized === 'breaststroke' || normalized === 'breastroke' || normalized === 'breast') {
     return 'breast'
   }
 
@@ -966,9 +964,11 @@ function parseRequiredNumber(value: string, label: string) {
   return parsed
 }
 
-function parseTimePartsToMilliseconds(
-  form: { hundredths: string; minutes: string; seconds: string },
-) {
+function parseTimePartsToMilliseconds(form: {
+  hundredths: string
+  minutes: string
+  seconds: string
+}) {
   const minutes = parseTimePart(form.minutes, 'Minutes')
   const seconds = parseTimePart(form.seconds, 'Seconds')
   const hundredths = parseHundredthsPart(form.hundredths, 'Hundredths')
