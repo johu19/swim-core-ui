@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { ChevronLeft, ChevronRight, GitCompareArrows, Rocket, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, GitCompareArrows, Medal, X } from 'lucide-react'
 import {
   Bar,
   BarChart,
@@ -395,7 +395,7 @@ export function Charts({
                           key={`chart-dot-${payload.performanceId}`}
                           fill={
                             isSelected
-                              ? 'rgba(250,204,21,0.95)'
+                              ? 'rgba(245,166,35,0.95)'
                               : isDimmedForCompare
                                 ? 'rgba(148,163,184,0.9)'
                                 : 'rgba(37,99,235,0.9)'
@@ -403,7 +403,7 @@ export function Charts({
                           r={isSelected ? 6.5 : isComparison ? 5 : isDimmedForCompare ? 4.5 : 3.5}
                           stroke={
                             isSelected
-                              ? 'rgba(202,138,4,1)'
+                              ? 'rgba(184,121,26,1)'
                               : isComparison
                                 ? 'rgba(29,78,216,1)'
                                 : isDimmedForCompare
@@ -477,10 +477,10 @@ export function Charts({
 
           {bestTime !== null ? (
             <div className="mt-4 flex items-center gap-2 px-1 text-sm font-medium text-foreground">
-              <Rocket className="size-4 text-primary" />
+              <Medal className="size-4 text-accent" />
               <span>
                 {'Your best: '}
-                <span className="text-emerald-600">{formatTime(bestTime)}</span>
+                <span className="font-semibold text-accent-foreground">{formatTime(bestTime)}</span>
               </span>
             </div>
           ) : null}
@@ -517,7 +517,7 @@ export function Charts({
                           content={<ComparisonSplitsTooltip />}
                         />
                       ) : null}
-                      <Bar dataKey="primaryTimeMs" fill="rgba(251,191,36,0.72)" radius={4}>
+                      <Bar dataKey="primaryTimeMs" fill="rgba(245,166,35,0.78)" radius={4}>
                         {showComparisonSplitLabels ? (
                           <LabelList
                             dataKey="primaryTimeMs"
@@ -554,7 +554,10 @@ export function Charts({
             <div className="mt-2 rounded-xl border border-primary/10 bg-primary/5 px-3 py-2 text-center text-sm text-foreground shadow-inset">
               {bestTime !== null ? (
                 selectedDatum.timeMs === bestTime ? (
-                  <div className="text-emerald-600">This is your best</div>
+                  <div className="flex items-center justify-center gap-1.5 font-semibold text-accent-foreground">
+                    <Medal className="size-4 text-accent" />
+                    This is your best
+                  </div>
                 ) : (
                   <div className="text-red-600">
                     {formatBestTimeDifference(selectedDatum.timeMs, bestTime)}

@@ -1,0 +1,16 @@
+<svg width="720" height="180" viewBox="0 0 720 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- droplet mark -->
+  <g transform="translate(20 26) scale(0.25)">
+    <rect width="512" height="512" rx="120" fill="url(#loginLogoBg)"/>
+    <path d="M256 104C256 104 152 226 152 316A104 104 0 1 0 360 316C360 226 256 104 256 104Z" fill="#ffffff"/>
+    <path d="M190 332C210 316 230 316 250 332C270 348 290 348 310 332" stroke="#2456F5" stroke-width="26" stroke-linecap="round" fill="none"/>
+  </g>
+  <!-- wordmark -->
+  <text x="182" y="112" font-family="'Arial Black','Franklin Gothic Heavy','Avenir Next Condensed',sans-serif" font-size="62" font-weight="900" letter-spacing="7" fill="#2456F5">SWIM CORE</text>
+  <defs>
+    <linearGradient id="loginLogoBg" x1="64" y1="48" x2="448" y2="464" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2456F5"/>
+      <stop offset="1" stop-color="#0D2F8D"/>
+    </linearGradient>
+  </defs>
+</svg>

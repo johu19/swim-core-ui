@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
+import { SwimCoreMark } from '@/components/swim-core-mark'
 import { Charts } from '@/features/charts/charts'
 import { Performances } from '@/features/performances/performances'
 import {
@@ -224,7 +225,8 @@ function AuthenticatedHome({ onSignOut }: { onSignOut: () => void }) {
     <main className="flex h-svh flex-col px-4 py-4 sm:px-6 sm:py-5">
       <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-4">
         <header className="flex items-center justify-between gap-4">
-          <div>
+          <div className="flex items-center gap-2.5">
+            <SwimCoreMark className="size-9 shrink-0 rounded-[0.6rem] shadow-card-subtle sm:size-10" />
             <h1 className="font-brand text-3xl tracking-brand text-primary sm:text-4xl">
               SWIM CORE
             </h1>
@@ -412,7 +414,7 @@ function SignInScreen({
 }) {
   return (
     <main className="flex min-h-svh flex-col items-center justify-center px-5 py-10 sm:px-8">
-      <WaveDecoration />
+      <SwimCoreMark className="size-20 rounded-[1.4rem] shadow-card sm:size-24" />
 
       <h1 className="mt-6 font-brand text-4xl tracking-brand text-primary sm:text-5xl">
         SWIM CORE
@@ -449,34 +451,6 @@ function SignInScreen({
         </Button>
       )}
     </main>
-  )
-}
-
-function WaveDecoration() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="w-40 text-primary sm:w-48"
-      viewBox="0 0 200 80"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <circle cx="100" cy="28" r="26" fill="currentColor" opacity="0.08" />
-      <path
-        d="M20 50 C32 38, 48 62, 60 50 C72 38, 88 62, 100 50 C112 38, 128 62, 140 50 C152 38, 168 62, 180 50"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="3"
-      />
-      <path
-        d="M20 62 C32 50, 48 74, 60 62 C72 50, 88 74, 100 62 C112 50, 128 74, 140 62 C152 50, 168 74, 180 62"
-        fill="none"
-        opacity="0.4"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="2"
-      />
-    </svg>
   )
 }
 

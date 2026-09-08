@@ -11,6 +11,8 @@
   --color-card-foreground: var(--card-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
@@ -38,6 +40,8 @@
   --card-foreground: oklch(0.22 0.03 250);
   --primary: oklch(0.56 0.2 257);
   --primary-foreground: oklch(0.99 0 0);
+  --accent: oklch(0.78 0.15 75);
+  --accent-foreground: oklch(0.4 0.08 66);
   --muted: oklch(0.95 0.02 244);
   --muted-foreground: oklch(0.46 0.05 252);
   --border: oklch(0.89 0.03 248);

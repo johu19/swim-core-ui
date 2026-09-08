@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Pencil, Trash2, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Medal, Pencil, Trash2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { Spinner } from '@/components/ui/spinner'
@@ -11,6 +11,7 @@ import {
   PerformanceDialog,
   type PerformanceDialogForm,
 } from '@/features/performances/performance-dialog'
+import { cn } from '@/lib/utils'
 
 type PerformancesProps = {
   distanceFilter: DistanceFilter
@@ -64,6 +65,7 @@ export function Performances({
   const [isUpdating, setIsUpdating] = useState(false)
   const [editForm, setEditForm] = useState<PerformanceDialogForm>(createDefaultPerformanceForm())
   const availableDistanceFilters = getAvailableDistanceFilters(strokeFilter)
+  const personalBestPerformances = getPersonalBestSet(performances)
 
   const filteredPerformances = performances.filter((performance) => {
     if (strokeFilter && getStrokeFilterValue(performance.stroke) !== strokeFilter) {
@@ -300,6 +302,7 @@ export function Performances({
                     }}
                     onToggleExpanded={() => toggleExpanded(rowKey)}
                     performance={performance}
+                    isPersonalBest={personalBestPerformances.has(performance)}
                     rowKey={rowKey}
                     setDeletingRowId={setDeletingRowId}
                   />
@@ -395,6 +398,7 @@ function CompactFilter({
 function PerformanceRow({
   deletingRowId,
   isExpanded,
+  isPersonalBest,
   onDelete,
   onEdit,
   onToggleExpanded,
@@ -404,6 +408,7 @@ function PerformanceRow({
 }: {
   deletingRowId: string | number | null
   isExpanded: boolean
+  isPersonalBest: boolean
   onDelete?: (performanceId: string | number) => Promise<void>
   onEdit: () => void
   onToggleExpanded: () => void
@@ -424,7 +429,7 @@ function PerformanceRow({
         tabIndex={0}
       >
         <td className="px-3 py-3 sm:px-4">
-          <span className="inline-flex items-center gap-2 font-medium text-primary">
+          <span className="inline-flex flex-wrap items-center gap-2 font-medium text-primary">
             <span className="text-xs text-muted-foreground">{isExpanded ? '−' : '+'}</span>
             <span>
               {formatEventLabel(
@@ -433,9 +438,25 @@ function PerformanceRow({
                 performance.stroke,
               )}
             </span>
+            {isPersonalBest ? (
+              <span
+                aria-label="Personal best"
+                className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent-foreground"
+              >
+                <Medal className="size-3" />
+                PB
+              </span>
+            ) : null}
           </span>
         </td>
-        <td className="px-3 py-3 sm:px-4">{formatTime(performance.timeMs)}</td>
+        <td
+          className={cn(
+            'px-3 py-3 sm:px-4',
+            isPersonalBest && 'font-semibold text-accent-foreground',
+          )}
+        >
+          {formatTime(performance.timeMs)}
+        </td>
         <td className="px-3 py-3 sm:px-4">{formatPerformedAt(performance.performedAt)}</td>
       </tr>
       {isExpanded ? (
@@ -1177,6 +1198,46 @@ function hasSplits(splits: number[] | null | undefined): splits is number[] {
   return Array.isArray(splits) && splits.length > 0
 }
 
+function getPerformanceRecordKey(performance: Performance) {
+  const stroke = getStrokeFilterValue(performance.stroke)
+  const distance = asNumber(performance.distance) ?? ''
+  const unit = normalizeUnit(performance.poolLengthUnit)
+
+  // Keyed by stroke + distance only (pool size is intentionally ignored). Unit
+  // stays in the key so meters and yards records don't collapse into one.
+  return `${stroke}|${distance}|${unit}`
+}
+
+// A performance is a personal best when it is the fastest recorded time for its
+// event (same stroke and distance, any pool). Computed over the full dataset so
+// the badge survives filtering, sorting, and pagination.
+function getPersonalBestSet(performances: Performance[]) {
+  const fastestByEvent = new Map<string, { performance: Performance; time: number }>()
+
+  for (const performance of performances) {
+    const time = asNumber(performance.timeMs)
+
+    if (time === null) {
+      continue
+    }
+
+    const key = getPerformanceRecordKey(performance)
+    const current = fastestByEvent.get(key)
+
+    if (!current || time < current.time) {
+      fastestByEvent.set(key, { performance, time })
+    }
+  }
+
+  const personalBests = new Set<Performance>()
+
+  for (const entry of fastestByEvent.values()) {
+    personalBests.add(entry.performance)
+  }
+
+  return personalBests
+}
+
 function getSplitTone(split: number, splits: number[]) {
   const fastestSplit = Math.min(...splits)
   const slowestSplit = Math.max(...splits)
@@ -1194,7 +1255,7 @@ function getSplitTone(split: number, splits: number[]) {
 
 function getSplitBadgeClassName(tone: 'default' | 'fastest' | 'slowest') {
   if (tone === 'fastest') {
-    return 'rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm text-emerald-800'
+    return 'rounded-full border border-accent/30 bg-accent/15 px-3 py-1 text-sm text-accent-foreground'
   }
 
   if (tone === 'slowest') {
